@@ -15,8 +15,8 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 
-	"gitsynth/internal/ident"
-	"gitsynth/internal/store"
+	"krystallos/internal/ident"
+	"krystallos/internal/store"
 )
 
 // A user's root identity signs in with a passkey, so an agent running on the
@@ -54,7 +54,7 @@ type passkeys struct {
 func (a *App) EnablePasskeys(cfg PasskeyConfig) error {
 	wa, err := webauthn.New(&webauthn.Config{
 		RPID:          cfg.RPID,
-		RPDisplayName: "gitsynth",
+		RPDisplayName: "krystallos",
 		RPOrigins:     cfg.Origins,
 		AuthenticatorSelection: protocol.AuthenticatorSelection{
 			ResidentKey:      protocol.ResidentKeyRequirementRequired,
@@ -205,7 +205,7 @@ func (a *App) IssueInvite(ctx context.Context, by Actor, org, permSet string, tt
 }
 
 func (a *App) issueLink(ctx context.Context, by Actor, principal, purpose, org, permSet string, ttl time.Duration) (string, error) {
-	token := "gsl_" + randomString(32)
+	token := "krl_" + randomString(32)
 	expires := time.Now().UTC().Add(ttl).Format(time.RFC3339)
 	_, err := a.Store.Write(ctx, by.Actor, func(tx *store.Tx) error {
 		if _, err := tx.Exec(`INSERT INTO enrollment_links (hash, principal, purpose, org, perm_set, expires_at) VALUES (?, ?, ?, ?, ?, ?)`,
@@ -469,7 +469,7 @@ const browserSessionTTL = 12 * time.Hour
 
 // StartBrowserSession issues the cookie credential after a sign-in.
 func (a *App) StartBrowserSession(ctx context.Context, actor Actor, method string) (BrowserSession, error) {
-	s := BrowserSession{Token: "gss_" + randomString(32), Expires: time.Now().UTC().Add(browserSessionTTL)}
+	s := BrowserSession{Token: "krs_" + randomString(32), Expires: time.Now().UTC().Add(browserSessionTTL)}
 	id := "sess_" + randomString(10)
 	_, err := a.Store.Write(ctx, actor.Actor, func(tx *store.Tx) error {
 		if _, err := tx.Exec(`INSERT INTO credentials (id, identity, hash, expires_at, kind) VALUES (?, ?, ?, ?, 'browser')`,

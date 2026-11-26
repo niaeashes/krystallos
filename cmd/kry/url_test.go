@@ -57,7 +57,7 @@ func TestResolveAddress(t *testing.T) {
 
 func TestResolveAddressRefuses(t *testing.T) {
 	for _, tc := range []struct{ name, url, origin string }{
-		{"a path", "https://git.example.com/gitsynth", ""},
+		{"a path", "https://git.example.com/krystallos", ""},
 		{"a query", "https://git.example.com?x=1", ""},
 		{"an empty query", "https://git.example.com?", ""},
 		{"a fragment", "https://git.example.com#top", ""},
@@ -93,14 +93,14 @@ func TestPublicURLForAdmin(t *testing.T) {
 
 func TestPasskeyProblem(t *testing.T) {
 	for url, ok := range map[string]bool{
-		"https://git.example.com":    true,
-		"http://localhost:3000":      true,
-		"http://gitsynth.localhost":  true,
-		"http://git.example.com":     false,
-		"http://127.0.0.1:3000":      false,
-		"https://192.0.2.1":          false,
-		"http://[::1]:3000":          false,
-		"https://git.example.com:84": true,
+		"https://git.example.com":     true,
+		"http://localhost:3000":       true,
+		"http://krystallos.localhost": true,
+		"http://git.example.com":      false,
+		"http://127.0.0.1:3000":       false,
+		"https://192.0.2.1":           false,
+		"http://[::1]:3000":           false,
+		"https://git.example.com:84":  true,
 	} {
 		if got := passkeyProblem(url); (got == "") != ok {
 			t.Errorf("%s: problem %q, want ok=%v", url, got, ok)

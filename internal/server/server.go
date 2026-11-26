@@ -1,4 +1,4 @@
-// Package server exposes gitsynth over HTTP: the public API, Git's smart
+// Package server exposes krystallos over HTTP: the public API, Git's smart
 // HTTP protocol, the event stream, and the internal endpoint hooks call.
 package server
 
@@ -18,8 +18,8 @@ import (
 	"strings"
 	"sync"
 
-	"gitsynth/internal/accesslog"
-	"gitsynth/internal/app"
+	"krystallos/internal/accesslog"
+	"krystallos/internal/app"
 )
 
 // Server serves the public endpoints.
@@ -176,7 +176,7 @@ func capBodies(next http.Handler) http.Handler {
 func (s *Server) InternalHandler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /internal/ref-txn", func(w http.ResponseWriter, r *http.Request) {
-		got, want := []byte(r.Header.Get("X-Gitsynth-Internal")), []byte(s.App.InternalSecret())
+		got, want := []byte(r.Header.Get("X-Krystallos-Internal")), []byte(s.App.InternalSecret())
 		if len(want) == 0 || subtle.ConstantTimeCompare(got, want) != 1 {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
@@ -195,7 +195,7 @@ func (s *Server) InternalHandler() http.Handler {
 	return capBodies(mux)
 }
 
-const sessionCookie = "gitsynth_session"
+const sessionCookie = "krystallos_session"
 
 // authenticate resolves the caller. A bearer token is the normal form; git
 // sends the token as the basic-auth password; a signed-in browser sends the
@@ -227,8 +227,8 @@ func (s *Server) authenticateFor(r *http.Request, audience string) (app.Actor, e
 	// A cookie rides along on any request the browser makes, so a request
 	// that changes something must also carry a header that another site's
 	// page cannot set without a CORS preflight we never grant.
-	if viaCookie && r.Method != http.MethodGet && r.Method != http.MethodHead && r.Header.Get("X-Gitsynth-CSRF") != "1" {
-		return app.Actor{}, &app.Error{Code: http.StatusForbidden, Msg: "request refused: missing X-Gitsynth-CSRF header"}
+	if viaCookie && r.Method != http.MethodGet && r.Method != http.MethodHead && r.Header.Get("X-Krystallos-CSRF") != "1" {
+		return app.Actor{}, &app.Error{Code: http.StatusForbidden, Msg: "request refused: missing X-Krystallos-CSRF header"}
 	}
 	return s.App.AuthenticateFor(r.Context(), token, audience)
 }

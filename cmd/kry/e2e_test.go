@@ -149,7 +149,7 @@ func TestEndToEnd(t *testing.T) {
 	if len(parents) != 3 || parents[0] != merged || parents[2] != cs.Status.Head {
 		t.Fatalf("main should be the merge commit %s with parents (base, %s): %v", merged, cs.Status.Head, parents)
 	}
-	if who := h.git(aliceWork, "log", "-1", "--format=%ce %ae", "origin/main"); who != "service:gitsynth@localhost user:alice@localhost" {
+	if who := h.git(aliceWork, "log", "-1", "--format=%ce %ae", "origin/main"); who != "service:krystallos@localhost user:alice@localhost" {
 		t.Fatalf("the server commits the merge, on behalf of alice: %q", who)
 	}
 
@@ -196,7 +196,7 @@ func TestEndToEnd(t *testing.T) {
 	if len(log.Commits) != 4 || !strings.HasPrefix(log.Commits[0].Subject, "Merge change set #1") {
 		t.Fatalf("unexpected log: %+v", log)
 	}
-	for i, want := range []string{"service:gitsynth", "user:alice/claude", "user:alice/claude", "user:alice"} {
+	for i, want := range []string{"service:krystallos", "user:alice/claude", "user:alice/claude", "user:alice"} {
 		if log.Commits[i].CommitterIdentity != want {
 			t.Fatalf("commit %d (%s) should resolve to %s, got %q", i, log.Commits[i].Subject, want, log.Commits[i].CommitterIdentity)
 		}
@@ -247,7 +247,7 @@ func TestEndToEnd(t *testing.T) {
 		return e.Type == "git.ref_transaction_rejected" && e.Identity == "user:alice/claude" && touches(e, "refs/heads/main")
 	})
 	requireEvent(t, evs, "merge ref update by the built-in service on behalf of alice", func(e event) bool {
-		return e.Type == "git.ref_transaction" && e.Identity == "service:gitsynth" && e.Payload["on_behalf_of"] == "user:alice" && e.Payload["source"] == "merge"
+		return e.Type == "git.ref_transaction" && e.Identity == "service:krystallos" && e.Payload["on_behalf_of"] == "user:alice" && e.Payload["source"] == "merge"
 	})
 	requireEvent(t, evs, "merge recorded by alice", func(e event) bool {
 		return e.Type == "changeset.merged" && e.Identity == "user:alice" && e.Payload["commit"] == merged
@@ -358,7 +358,7 @@ func TestStartRepairsHooks(t *testing.T) {
 
 	h.stop()
 	repoPath := h.repoPath()
-	missing := filepath.Join(dir, "moved-away", "gitsynth")
+	missing := filepath.Join(dir, "moved-away", "kry")
 	hook := "#!/bin/sh\nexec '" + missing + "' hook --data '" + h.data + "' reference-transaction \"$@\"\n"
 	if err := os.WriteFile(filepath.Join(repoPath, "hooks", "reference-transaction"), []byte(hook), 0o755); err != nil {
 		t.Fatal(err)
@@ -463,7 +463,7 @@ func (h *harness) useSSH() {
 }
 
 func newHarness(t *testing.T, dir string) *harness {
-	h := &harness{t: t, bin: filepath.Join(dir, "gitsynth"), data: filepath.Join(dir, "data")}
+	h := &harness{t: t, bin: filepath.Join(dir, "kry"), data: filepath.Join(dir, "data")}
 	home := filepath.Join(dir, "home")
 	if err := os.MkdirAll(home, 0o755); err != nil {
 		t.Fatal(err)
@@ -503,7 +503,7 @@ func (h *harness) run(args ...string) string {
 	cmd.Env = h.env
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		h.t.Fatalf("gitsynth %v: %v\n%s", args, err, out)
+		h.t.Fatalf("kry %v: %v\n%s", args, err, out)
 	}
 	return string(out)
 }

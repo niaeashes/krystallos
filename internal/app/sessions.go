@@ -9,7 +9,7 @@ import (
 	"time"
 	"unicode"
 
-	"gitsynth/internal/store"
+	"krystallos/internal/store"
 )
 
 // A session is one run of an identity: an agent's run, or a subagent's run
@@ -173,7 +173,7 @@ func (a *App) openSession(ctx context.Context, by Actor, opener, label, expires 
 			ID: "ses_" + randomString(10), Identity: by.Identity, Parent: parent, Label: label,
 			OpenedAt: now.Format(time.RFC3339),
 		},
-		Token:          "gs_" + randomString(32),
+		Token:          "kr_" + randomString(32),
 		ExpiresAt:      expires,
 		CommitterEmail: a.CommitEmail(ctx, by.Identity),
 	}
@@ -330,7 +330,7 @@ func (a *App) IssueGitCredential(ctx context.Context, act Actor) (GitCredential,
 	}
 	out := GitCredential{
 		ID: "cred_" + randomString(10), Identity: act.Identity, Session: act.Session,
-		Token: "gs_" + randomString(32), ExpiresAt: expires, CommitterEmail: a.CommitEmail(ctx, act.Identity),
+		Token: "kr_" + randomString(32), ExpiresAt: expires, CommitterEmail: a.CommitEmail(ctx, act.Identity),
 	}
 	_, err = a.Store.Write(ctx, act.Actor, func(tx *store.Tx) error {
 		if err := a.identityActive(ctx, tx, act.ID()); err != nil {

@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"gitsynth/internal/app"
-	"gitsynth/internal/gitx"
+	"krystallos/internal/app"
+	"krystallos/internal/gitx"
 )
 
 // gitRepo authenticates a git client and checks perm. Reads of a repository
@@ -19,7 +19,7 @@ func (s *Server) gitRepo(w http.ResponseWriter, r *http.Request, perm string) (a
 	w.Header().Set("Cache-Control", "private, no-store")
 	actor, err := s.authenticateFor(r, app.AudienceGit)
 	if err != nil {
-		w.Header().Set("WWW-Authenticate", `Basic realm="gitsynth"`)
+		w.Header().Set("WWW-Authenticate", `Basic realm="krystallos"`)
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return app.Repo{}, app.Actor{}, false
 	}
@@ -96,7 +96,7 @@ func protocolEnv(r *http.Request) []string {
 // what concurrent fetches can hold bounded. It applies after gzip.
 const maxUploadRequest = 64 << 20
 
-const v2Required = "gitsynth needs git protocol v2 for fetches (git 2.26 or later), so that every read can be recorded"
+const v2Required = "krystallos needs git protocol v2 for fetches (git 2.26 or later), so that every read can be recorded"
 
 func (s *Server) gitInfoRefs(w http.ResponseWriter, r *http.Request) {
 	service := r.URL.Query().Get("service")

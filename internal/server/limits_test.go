@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"gitsynth/internal/gitx"
+	"krystallos/internal/gitx"
 )
 
 // send is a request whose body may be any size, sent with its length

@@ -1,4 +1,4 @@
-module gitsynth
+module krystallos
 
 go 1.27.4
 

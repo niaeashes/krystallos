@@ -588,7 +588,7 @@ function Services() {
           <li key={s.id} className="list-row">
             <Identity handle={s.id} />
             <span className="list-title">{s.manifest.description}</span>
-            {s.id === 'service:gitsynth' ? (
+            {s.id === 'service:krystallos' ? (
               <span className="muted small">built in: the server itself, in every org</span>
             ) : (
               <>

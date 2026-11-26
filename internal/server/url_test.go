@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"gitsynth/internal/accesslog"
-	"gitsynth/internal/app"
+	"krystallos/internal/accesslog"
+	"krystallos/internal/app"
 )
 
 // forged are headers a client can send to pose as reached at another
@@ -168,7 +168,7 @@ func TestInvitationLinkStartsFromAKnownOrigin(t *testing.T) {
 			URL string `json:"url"`
 		}
 		call(t, h, "POST", "/api/invitations", tok, `{}`, tc.headers, &inv)
-		if !strings.HasPrefix(inv.URL, tc.want+"/register?token=gsl_") {
+		if !strings.HasPrefix(inv.URL, tc.want+"/register?token=krl_") {
 			t.Errorf("%s: invitation link = %q, want it under %s", tc.name, inv.URL, tc.want)
 		}
 	}

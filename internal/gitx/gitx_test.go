@@ -27,12 +27,12 @@ func TestCmdIgnoresServerGitConfig(t *testing.T) {
 		return p
 	}
 	hooks := filepath.Join(dir, "no-hooks")
-	t.Setenv("GIT_CONFIG_GLOBAL", write("global", "[core]\n\thooksPath = "+hooks+"\n[gitsynth]\n\tglobal = leak\n"))
+	t.Setenv("GIT_CONFIG_GLOBAL", write("global", "[core]\n\thooksPath = "+hooks+"\n[krystallos]\n\tglobal = leak\n"))
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "0")
-	t.Setenv("GIT_CONFIG_SYSTEM", write("system", "[gitsynth]\n\tsystem = leak\n"))
-	t.Setenv("GIT_CONFIG_PARAMETERS", "'gitsynth.parameters'='leak'")
+	t.Setenv("GIT_CONFIG_SYSTEM", write("system", "[krystallos]\n\tsystem = leak\n"))
+	t.Setenv("GIT_CONFIG_PARAMETERS", "'krystallos.parameters'='leak'")
 	t.Setenv("GIT_CONFIG_COUNT", "1")
-	t.Setenv("GIT_CONFIG_KEY_0", "gitsynth.count")
+	t.Setenv("GIT_CONFIG_KEY_0", "krystallos.count")
 	t.Setenv("GIT_CONFIG_VALUE_0", "leak")
 	bogus := filepath.Join(dir, "bogus.git")
 	t.Setenv("GIT_DIR", bogus)
@@ -59,7 +59,7 @@ func TestCmdIgnoresServerGitConfig(t *testing.T) {
 	if want, _ := filepath.EvalSymlinks(repo); gitDir != want && gitDir != repo {
 		t.Fatalf("git ran in %s, want %s", gitDir, repo)
 	}
-	for _, key := range []string{"core.hooksPath", "gitsynth.global", "gitsynth.system", "gitsynth.parameters", "gitsynth.count"} {
+	for _, key := range []string{"core.hooksPath", "krystallos.global", "krystallos.system", "krystallos.parameters", "krystallos.count"} {
 		out, err := g.Output(ctx, repo, nil, "config", "--get", key)
 		if ExitCode(err) != 1 || out != "" {
 			t.Errorf("%s reached git from the server's environment: %q, %v", key, out, err)

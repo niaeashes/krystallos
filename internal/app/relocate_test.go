@@ -20,7 +20,7 @@ func TestRepoPaths(t *testing.T) {
 		t.Skip("git not installed")
 	}
 	ctx := context.Background()
-	a, err := Open(ctx, Config{DataDir: filepath.Join(t.TempDir(), "data"), GitBin: "git", HookBin: "/usr/local/bin/gitsynth"})
+	a, err := Open(ctx, Config{DataDir: filepath.Join(t.TempDir(), "data"), GitBin: "git", HookBin: "/usr/local/bin/kry"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,5 +99,21 @@ func TestRepoPaths(t *testing.T) {
 	}
 	if err := a.CheckRepos(ctx); err == nil || !strings.Contains(err.Error(), "acme/app") || !strings.Contains(err.Error(), "not a git repository") {
 		t.Fatalf("an empty directory should not pass for the repository: %v", err)
+	}
+}
+
+// TestOpenRefusesGitsynthDataDir checks that a data directory made when the
+// server was called gitsynth is refused, not started over beside its
+// database.
+func TestOpenRefusesGitsynthDataDir(t *testing.T) {
+	data := t.TempDir()
+	if err := os.WriteFile(filepath.Join(data, "gitsynth.db"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Open(context.Background(), Config{DataDir: data}); !errors.Is(err, ErrRenamedDataDir) {
+		t.Fatalf("Open = %v, want ErrRenamedDataDir", err)
+	}
+	if _, err := os.Stat(filepath.Join(data, "krystallos.db")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("krystallos.db should not be created beside gitsynth.db: %v", err)
 	}
 }

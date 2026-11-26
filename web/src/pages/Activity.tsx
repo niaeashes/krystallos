@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import type { GitsynthEvent } from '../api'
+import type { KrystallosEvent } from '../api'
 import { Identity, Oid, when } from '../ui'
 
 // The activity page reads the same event stream any subscriber reads, over
@@ -8,7 +8,7 @@ import { Identity, Oid, when } from '../ui'
 
 type Updates = { ref: string; old: string; new: string }[]
 
-function summary(e: GitsynthEvent) {
+function summary(e: KrystallosEvent) {
   const p = (e.payload ?? {}) as Record<string, unknown>
   const updates = (p.updates as Updates | undefined) ?? []
   const refs = updates.map((u) => (
@@ -58,14 +58,14 @@ function summary(e: GitsynthEvent) {
   }
 }
 
-function where(e: GitsynthEvent) {
+function where(e: KrystallosEvent) {
   if (e.repo) return <Link to={`/${e.repo}`}>{e.repo}</Link>
   if (e.org) return <Link to={`/${e.org}`}>{e.org}</Link>
   return null
 }
 
 export function ActivityPage() {
-  const [events, setEvents] = useState<GitsynthEvent[]>([])
+  const [events, setEvents] = useState<KrystallosEvent[]>([])
   const [live, setLive] = useState(false)
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function ActivityPage() {
     source.onopen = () => setLive(true)
     source.onerror = () => setLive(false)
     source.onmessage = (msg: MessageEvent) => {
-      const e = JSON.parse(msg.data) as GitsynthEvent
+      const e = JSON.parse(msg.data) as KrystallosEvent
       setEvents((prev) => (prev.some((x) => x.seq === e.seq) ? prev : [e, ...prev].slice(0, 500)))
     }
     return () => source.close()

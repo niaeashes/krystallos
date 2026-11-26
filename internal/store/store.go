@@ -53,7 +53,7 @@ type Event struct {
 // to verify the chain they received.
 func (e *Event) ComputeHash() string {
 	h := sha256.New()
-	fmt.Fprintf(h, "gitsynth-event-v1\n%d\n%s\n%d\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
+	fmt.Fprintf(h, "krystallos-event-v1\n%d\n%s\n%d\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
 		e.Seq, e.Type, e.Version, e.Org, e.Repo, e.Identity, e.Principal, e.Session, e.At, e.PrevHash)
 	h.Write(e.Payload)
 	return hex.EncodeToString(h.Sum(nil))
@@ -91,9 +91,9 @@ func Open(path string) (*Store, error) {
 	return &Store{w: w, r: r, subs: map[chan struct{}]struct{}{}}, nil
 }
 
-// ErrOldDataDir means the database was made by a version of gitsynth whose
+// ErrOldDataDir means the database was made by a version of krystallos whose
 // identity model this one no longer reads.
-var ErrOldDataDir = errors.New("this data directory was made by an earlier gitsynth with a different identity model; create a new one with `gitsynth admin init`")
+var ErrOldDataDir = errors.New("this data directory was made by an earlier krystallos with a different identity model; create a new one with `kry admin init`")
 
 // migrate creates missing tables. Data directories from before identities
 // became "kind:name/label" strings are refused rather than half-read.

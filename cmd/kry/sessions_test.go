@@ -52,7 +52,7 @@ func TestSessions(t *testing.T) {
 	agent := h.client(standing["token"].(string))
 
 	// A standing token belongs to no session, and a caller cannot declare one.
-	me := meWithHeader(t, h, standing["token"].(string), "Gitsynth-Session", "made-up")
+	me := meWithHeader(t, h, standing["token"].(string), "Krystallos-Session", "made-up")
 	if me["identity"] != "user:alice/claude" || me["session"] != "" {
 		t.Fatalf("a standing token should carry no session, whatever the request says: %v", me)
 	}

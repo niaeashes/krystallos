@@ -110,10 +110,10 @@ func TestAuthorizeAppScheme(t *testing.T) {
 func TestOAuthReturn(t *testing.T) {
 	s, _ := newTestServer(t, "http://localhost:3000")
 	h := s.Handler()
-	loc := withParams(claudeAppRedirect, map[string]string{"code": "gsa_x", "state": "st", "iss": s.URL})
+	loc := withParams(claudeAppRedirect, map[string]string{"code": "kra_x", "state": "st", "iss": s.URL})
 	out := s.returnTo(loc)
 	if !strings.HasPrefix(out["redirect"], "http://localhost:3000/oauth/return/ort_") {
-		t.Fatalf("the consent page should be sent to gitsynth's own return URL: %q", out["redirect"])
+		t.Fatalf("the consent page should be sent to krystallos's own return URL: %q", out["redirect"])
 	}
 	path := strings.TrimPrefix(out["redirect"], "http://localhost:3000")
 	w := oauthSend(h, "GET", path, "", "")

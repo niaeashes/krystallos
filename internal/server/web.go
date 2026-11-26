@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"gitsynth/internal/app"
+	"krystallos/internal/app"
 )
 
 // webUI serves the built web UI from files. A file that exists is served as

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"gitsynth/internal/app"
-	"gitsynth/internal/store"
+	"krystallos/internal/app"
+	"krystallos/internal/store"
 )
 
 // visibility decides which events a subscriber may receive: events of a

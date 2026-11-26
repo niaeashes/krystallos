@@ -33,7 +33,7 @@ func connectMCP(t *testing.T, endpoint, token string) mcpClient {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	client := mcp.NewClient(&mcp.Implementation{Name: "gitsynth-test", Version: "0"}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "krystallos-test", Version: "0"}, nil)
 	cs, err := client.Connect(ctx, &mcp.StreamableClientTransport{
 		Endpoint:   endpoint,
 		HTTPClient: &http.Client{Transport: bearer{token: token, base: http.DefaultTransport}},

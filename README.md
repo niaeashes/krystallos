@@ -1,4 +1,4 @@
-# gitsynth
+# krystallos
 
 A self-hosted Git forge for small teams, where people and AI agents develop together.
 
@@ -27,8 +27,8 @@ It needs Go 1.27, Node 22 or later, and git 2.38 or later.
 
 ```bash
 scripts/build.sh
-./bin/gitsynth admin init --data ./data --user alice --host localhost
-./bin/gitsynth serve --data ./data
+./bin/kry admin init --data ./data --user alice --host localhost
+./bin/kry serve --data ./data
 ```
 
 `init` creates the first user and prints a token and a one-time link for creating a passkey. Open the link: `serve` serves the web UI at `http://localhost:3000`, next to git and the API. From there, create an org and a repository, and clone it over HTTP with a token from the Identities page.

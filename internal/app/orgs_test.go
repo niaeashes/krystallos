@@ -29,7 +29,7 @@ func TestInstallHooks(t *testing.T) {
 		return a
 	}
 
-	a := open("/old/place/gitsynth")
+	a := open("/old/place/kry")
 	if err := a.Initialize(ctx, "localhost"); err != nil {
 		t.Fatal(err)
 	}
@@ -44,11 +44,11 @@ func TestInstallHooks(t *testing.T) {
 	hooks := filepath.Join(repo.Path, "hooks")
 	hook := filepath.Join(hooks, "reference-transaction")
 
-	a = open("/new/place/gitsynth")
+	a = open("/new/place/kry")
 	if err := a.InstallHooks(ctx); err != nil {
 		t.Fatal(err)
 	}
-	want := "#!/bin/sh\nexec '/new/place/gitsynth' hook --data '" + a.DataDir() + "' reference-transaction \"$@\"\n"
+	want := "#!/bin/sh\nexec '/new/place/kry' hook --data '" + a.DataDir() + "' reference-transaction \"$@\"\n"
 	if got, err := os.ReadFile(hook); err != nil || string(got) != want {
 		t.Fatalf("hook should call the new binary:\n got %q (%v)\nwant %q", got, err, want)
 	}

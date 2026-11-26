@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strings"
 
-	"gitsynth/internal/ident"
-	"gitsynth/internal/store"
+	"krystallos/internal/ident"
+	"krystallos/internal/store"
 )
 
 // In Git the identity lives in the committer, and a committer is an email

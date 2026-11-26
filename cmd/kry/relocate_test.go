@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"gitsynth/internal/store"
+	"krystallos/internal/store"
 )
 
 // TestMoveDataDir moves the whole data directory while the server is down
-// and starts it at the new path. Its rows hold absolute paths, as gitsynth
+// and starts it at the new path. Its rows hold absolute paths, as krystallos
 // wrote them before a data directory could move. Fetch and push work there,
 // and the push is recorded.
 func TestMoveDataDir(t *testing.T) {
@@ -130,7 +130,7 @@ func TestMissingRepoDir(t *testing.T) {
 		cmd.Env = h.env
 		out, err := cmd.CombinedOutput()
 		if err == nil || !strings.Contains(string(out), "acme/app") || !strings.Contains(string(out), filepath.Base(repo)+" is missing") {
-			t.Fatalf("gitsynth %s should refuse, naming acme/app and its missing directory: %v\n%s", args[0], err, out)
+			t.Fatalf("kry %s should refuse, naming acme/app and its missing directory: %v\n%s", args[0], err, out)
 		}
 	}
 	if out := h.run("admin", "verify", "--data", h.data); !strings.HasPrefix(out, "ok:") {
@@ -156,7 +156,7 @@ func relocateSetup(t *testing.T) (h *harness, alice client, token, work string) 
 	return h, alice, token, work
 }
 
-// storeAbsolutePaths rewrites the repository rows the way gitsynth wrote
+// storeAbsolutePaths rewrites the repository rows the way krystallos wrote
 // them before a data directory could move: each holds the repository's
 // absolute path. The server must be down.
 func storeAbsolutePaths(t *testing.T, data string) {
@@ -165,7 +165,7 @@ func storeAbsolutePaths(t *testing.T, data string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	st, err := store.Open(filepath.Join(data, "gitsynth.db"))
+	st, err := store.Open(filepath.Join(data, "krystallos.db"))
 	if err != nil {
 		t.Fatal(err)
 	}

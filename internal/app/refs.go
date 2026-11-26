@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"gitsynth/internal/gitx"
-	"gitsynth/internal/ident"
-	"gitsynth/internal/store"
+	"krystallos/internal/gitx"
+	"krystallos/internal/ident"
+	"krystallos/internal/store"
 )
 
 // Op is the context of one git operation the server starts: who it is for,
@@ -93,9 +93,9 @@ func ReadInternalInfo(dataDir string) (InternalInfo, error) {
 // HookEnv is the environment that lets a hook tie a ref update back to op.
 func (a *App) HookEnv(token string) []string {
 	return []string{
-		"GITSYNTH_OP=" + token,
-		"GITSYNTH_INTERNAL_URL=" + a.internalURL,
-		"GITSYNTH_INTERNAL_SECRET=" + a.internalSecret,
+		"KRYSTALLOS_OP=" + token,
+		"KRYSTALLOS_INTERNAL_URL=" + a.internalURL,
+		"KRYSTALLOS_INTERNAL_SECRET=" + a.internalSecret,
 	}
 }
 

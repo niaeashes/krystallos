@@ -1,4 +1,4 @@
-# gitsynth concept
+# krystallos concept
 
 > Status: draft (a summary of the discussions up to 2026-11-25)
 >
@@ -6,7 +6,7 @@
 
 ## Overview
 
-gitsynth is an open-source Git forge meant to be self-hosted by small teams. It rethinks the GitHub-style forge on the assumption that people and AI agents develop together.
+krystallos is an open-source Git forge meant to be self-hosted by small teams. It rethinks the GitHub-style forge on the assumption that people and AI agents develop together.
 
 It rests on three pillars.
 
@@ -34,14 +34,14 @@ It rests on three pillars.
 **Overall layout**
 
 ```
-gitsynth (server)
+krystallos (server)
 ├─ HTTPS        : API, Git over HTTP
 ├─ SSH          : built-in SSH server
 ├─ Jobs         : mergeability checks, restacking, webhooks, notifications
 └─ Internal API : loopback HTTP, guarded by a secret made at each start, called by Git hooks
 
 data/
-├─ gitsynth.db     write events (the source of truth) and projection tables for the UI
+├─ krystallos.db     write events (the source of truth) and projection tables for the UI
 ├─ access.db       read records
 ├─ repos/<ID>.git  bare repositories
 └─ blobs/          attachments and the like
@@ -72,13 +72,13 @@ data/
 - Agent identities: tokens and SSH keys issued from a screen the person signed in to with a passkey. An SSH key is a credential like a standing token: it belongs to one identity and no session, and revoking or disabling stops it.
 - Commit signing: SSH signatures (Git 2.34 and later), so key management is unified on SSH keys.
 - A passkey is created through a one-time link from the admin CLI. The same CLI can issue a one-time sign-in link, as the way back in for someone who lost their passkey; only someone with shell access to the server can do that.
-- The browser holds a cookie session bound to the person's standard identity. A request that changes something must also carry the `X-Gitsynth-CSRF` header, which another site's page cannot set without a CORS preflight the server never grants.
+- The browser holds a cookie session bound to the person's standard identity. A request that changes something must also carry the `X-Krystallos-CSRF` header, which another site's page cannot set without a CORS preflight the server never grants.
 
 **Serving the web UI**
 
 - The SPA's static files (JavaScript, CSS) contain no user data, so a CDN may cache them. Data always comes from the API, and API responses are never cached.
 - Whether the SPA build ships inside the release binary or separately is a distribution decision. As long as the sources are separate, either is possible.
-- `gitsynth serve --web` chooses: by default the build inside the binary (`scripts/build.sh` embeds it), `off` for none (the SPA is served from elsewhere on the same origin, such as a CDN), or a directory holding a build. Any path that is not the API, git, MCP or a static file gets `index.html`, so deep links reload. Hashed assets are cached as immutable; `index.html` is revalidated every time.
+- `kry serve --web` chooses: by default the build inside the binary (`scripts/build.sh` embeds it), `off` for none (the SPA is served from elsewhere on the same origin, such as a CDN), or a directory holding a build. Any path that is not the API, git, MCP or a static file gets `index.html`, so deep links reload. Hashed assets are cached as immutable; `index.html` is revalidated every time.
 
 **Deployment**
 
@@ -105,14 +105,14 @@ data/
 
 | | User | Bot | Service |
 |---|---|---|---|
-| What it is | A person | Something that acts on gitsynth, any number of them | An external system, or the server's own behavior (CI, error tracking, chat integrations, `gitsynth`) |
+| What it is | A person | Something that acts on krystallos, any number of them | An external system, or the server's own behavior (CI, error tracking, chat integrations, `krystallos`) |
 | Identities | The user's standard identity, and identities derived from it (`user:alice/claude`) | One per bot, and identities derived from it | One per service |
 | Owned by | — | A user, an org, or the server | Registered on the server from a manifest, then installed into orgs |
 | Permissions | Granted | Granted | Requested in the manifest, approved by an org admin at installation |
 
-- An identity is written `<kind>:<root>(/<label>)*[@<host>]`, such as `user:alice/claude` or, in full, `user:alice/claude@gitsynth.example.com`. Within one server the host can be left out.
+- An identity is written `<kind>:<root>(/<label>)*[@<host>]`, such as `user:alice/claude` or, in full, `user:alice/claude@krystallos.example.com`. Within one server the host can be left out.
 - Identities can be derived from each other with `/`, without limit: `user:alice/claude/explorer`, `bot:devbox/triage`. A derived identity's permissions never exceed its parent's: an identity's effective permissions are its own grants intersected with its parent's effective permissions.
-- The server's own behavior (merge commits, reconciliation) is the built-in service `service:gitsynth`, not a bot. The server can still own any number of bots of its own.
+- The server's own behavior (merge commits, reconciliation) is the built-in service `service:krystallos`, not a bot. The server can still own any number of bots of its own.
 
 Examples: Alice's local Claude Code session acts as `user:alice/claude`; Alice's own manual work acts as `user:alice`; a devbox that starts Claude with different system prompts can be a bot per prompt, or one bot with derived identities; CI is a service.
 
@@ -140,7 +140,7 @@ Examples: Alice's local Claude Code session acts as `user:alice/claude`; Alice's
 
 ### Proposed
 
-- **Commits the server makes** (merge commits, restacks) have `service:gitsynth` as committer and are signed with the server's key; the author is the identity that asked for them. Every forge surveyed does the same with its instance identity.
+- **Commits the server makes** (merge commits, restacks) have `service:krystallos` as committer and are signed with the server's key; the author is the identity that asked for them. Every forge surveyed does the same with its instance identity.
 - **The easy path for agents**: a session's credential comes with the committer settings for its identity (`GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL` in the canonical form). A local agent otherwise commits with the person's own git config, which the push check rightly refuses; the refusal says how to fix it.
 - **Signatures as a stronger mode**: a repository can require new commits to be signed by a key registered to the committer's identity (SSH signatures). The push check stays; the signature adds proof that survives the repository leaving the server.
 - **Imported history** is accepted and marked as imported rather than refused, the way Gerrit's Forge Committer right and GitLab's mirroring exemption handle upstream history.
@@ -228,7 +228,7 @@ Separating issues and pull requests is a design for people, and it becomes a bot
 
 ### Decided
 
-- Pull requests belong to issues. In gitsynth a pull request is called a **change set**.
+- Pull requests belong to issues. In krystallos a pull request is called a **change set**.
 - A **plan** is a resource of its own.
 - An issue can hold any number of plans and any number of change sets.
 - A change set is the execution of a plan, and is associated with zero or one plan.
@@ -337,7 +337,7 @@ Change Set C → P1 v2, s3          ← shares the work with A and B
 ### Decided
 
 - CI is not part of the core.
-- gitsynth publishes events. CI, notifications, bots, agents and the like are subscribers.
+- krystallos publishes events. CI, notifications, bots, agents and the like are subscribers.
 - Results from subscribers come back through the ordinary API, as writes under the subscriber's own identity.
 
 ### Proposed
@@ -396,8 +396,8 @@ Change Set C → P1 v2, s3          ← shares the work with A and B
 ### Proposed
 
 - **The URL names the identity**: each identity has its own MCP endpoint, with the identity spelled out in the path, `/mcp/<kind>/<root>/<label>...` (`/mcp/user/alice/claude`), so nothing needs escaping. A request is served only when its credential belongs to exactly the identity in the path.
-- **OAuth binds a client to that identity**: gitsynth is the authorization server of MCP's authorization spec (OAuth 2.1 with Protected Resource Metadata and resource indicators). Adding the endpoint to an MCP client opens gitsynth's consent screen, where the person signs in with a passkey and approves the client acting as that identity, creating the identity there if it does not exist yet. The token's audience is the endpoint's URL, so it is no use at another identity's endpoint, nor for git. The client keeps the refresh token, so no person's own token is ever handed to an agent. Clients register with a Client ID Metadata Document, or with Dynamic Client Registration where they have none.
-- **An MCP session is a gitsynth session**: the endpoint keeps state, and each `initialize` opens a session of the bound identity. It is opened by the grant, not by an access token, so it lasts through refreshes, and it closes when the MCP session ends. A run inside it that should be told apart, such as a subagent sharing its parent's connection, opens a child session with the tool `open_session` and names it on later calls in the `session` argument every tool takes; it can only name sessions opened below its own. No session ID is ever declared on its own. MCP's 2026-07-28 revision drops protocol sessions and `initialize`, so these endpoints speak the revisions up to 2025-11-25, and a newer client falls back to `initialize` (see "Open questions").
+- **OAuth binds a client to that identity**: krystallos is the authorization server of MCP's authorization spec (OAuth 2.1 with Protected Resource Metadata and resource indicators). Adding the endpoint to an MCP client opens krystallos's consent screen, where the person signs in with a passkey and approves the client acting as that identity, creating the identity there if it does not exist yet. The token's audience is the endpoint's URL, so it is no use at another identity's endpoint, nor for git. The client keeps the refresh token, so no person's own token is ever handed to an agent. Clients register with a Client ID Metadata Document, or with Dynamic Client Registration where they have none.
+- **An MCP session is a krystallos session**: the endpoint keeps state, and each `initialize` opens a session of the bound identity. It is opened by the grant, not by an access token, so it lasts through refreshes, and it closes when the MCP session ends. A run inside it that should be told apart, such as a subagent sharing its parent's connection, opens a child session with the tool `open_session` and names it on later calls in the `session` argument every tool takes; it can only name sessions opened below its own. No session ID is ever declared on its own. MCP's 2026-07-28 revision drops protocol sessions and `initialize`, so these endpoints speak the revisions up to 2025-11-25, and a newer client falls back to `initialize` (see "Open questions").
 - **Git goes through a credential the session issues**: the tool `git_credential` issues a short-lived git credential (an hour at most) for the same identity and session, together with the address to commit with. It works for git only and ends with its session.
 - **Only a derived identity is bound to a client**: the consent screen never binds the person's own identity, so the passkey stays the only way to act as the person.
 - Bots, CI and other clients that cannot go through a browser keep using static bearer tokens, each bound to one identity; the path rule applies to them too.
@@ -409,8 +409,8 @@ Change Set C → P1 v2, s3          ← shares the work with A and B
 - How a registered email address is shown to belong to its identity (a confirmation mail, an admin's approval, or a domain rule); until then, the first identity to register an address holds it
 - How much of the link between principals and identities other members can see
 - The rules for the inbox's way in, and which way out comes first
-- How a run is told apart once MCP clients stop speaking a revision with sessions. MCP 2026-07-28 removes protocol sessions and `initialize` (each request carries its protocol version and client info in `_meta` instead). gitsynth's endpoints keep to 2025-11-25 for now, and clients fall back to it. Candidates: a session per grant, or a session named in each request's `_meta`.
-- Subagents, as checked against Claude Code's documentation: a subagent that names an MCP server by reference shares its parent's connection (https://code.claude.com/docs/en/sub-agents), so it reaches gitsynth as its parent's MCP session and needs a child session opened by tool. A server defined inline in a subagent connects separately, and so gets a session of its own. Whether such a session should hang under its parent's is open.
+- How a run is told apart once MCP clients stop speaking a revision with sessions. MCP 2026-07-28 removes protocol sessions and `initialize` (each request carries its protocol version and client info in `_meta` instead). krystallos's endpoints keep to 2025-11-25 for now, and clients fall back to it. Candidates: a session per grant, or a session named in each request's `_meta`.
+- Subagents, as checked against Claude Code's documentation: a subagent that names an MCP server by reference shares its parent's connection (https://code.claude.com/docs/en/sub-agents), so it reaches krystallos as its parent's MCP session and needs a child session opened by tool. A server defined inline in a subagent connects separately, and so gets a session of its own. Whether such a session should hang under its parent's is open.
 - Client registration, as checked against Claude Code:
   - It uses a Client ID Metadata Document when the server supports one (client_id `https://claude.ai/oauth/claude-code-client-metadata`), and Dynamic Client Registration otherwise.
   - It redirects to `http://localhost:PORT/callback` on a random port.
@@ -418,7 +418,7 @@ Change Set C → P1 v2, s3          ← shares the work with A and B
   - It accepts a plain-http authorization server only on localhost.
   - Sources: https://claude.com/docs/connectors/building/authentication and https://code.claude.com/docs/en/mcp.
 
-  Still open: whether to keep Dynamic Client Registration, which the 2026-07-28 revision deprecates. Anyone can register through it, so gitsynth caps how many unapproved registrations it takes in an hour.
+  Still open: whether to keep Dynamic Client Registration, which the 2026-07-28 revision deprecates. Anyone can register through it, so krystallos caps how many unapproved registrations it takes in an hour.
 - Who can see whose read records. A person's read records can turn into surveillance within a team. Whether read records go out to subscribers as events belongs here too
 - Whether an idea may be associated with zero repositories (a thought for a repository that does not exist yet)
 - The form of distribution (a single binary with the SPA bundled, separate delivery, a Docker image, ...)
@@ -428,7 +428,7 @@ Change Set C → P1 v2, s3          ← shares the work with A and B
 
 Surveyed as of 2026-11-25. No self-hosted forge was found that centers on letting people and bots alike hold several identities that sign every action.
 
-| Name | What is related | How it differs from gitsynth |
+| Name | What is related | How it differs from krystallos |
 |---|---|---|
 | [GitLab Composite Identity](https://docs.gitlab.com/user/duo_agent_platform/composite_identity/) | Combines an AI agent's service account and the person who started it into one token. Permissions are the stricter of the two. Shown as "<service account> on behalf of @person" | Only for GitLab's AI features, and only on Premium/Ultimate. No notion of a person switching between identities |
 | [GitHub Agent HQ](https://github.blog/news-insights/product-news/welcome-home-agents/) / Copilot coding agent | Copilot commits under its own name and adds a [link to its session logs](https://github.blog/changelog/2026-03-20-trace-any-copilot-coding-agent-commit-to-its-session-logs) to commits. Assigning an issue creates a PR | One account per person is assumed. Issues and PRs are separate objects joined by links |
@@ -446,7 +446,7 @@ Related: there are [reports](https://www.hostzealot.com/blog/news/codeberg-close
 | Term | Meaning |
 |---|---|
 | User | A person. Signs in with a passkey |
-| Bot | Something that acts on gitsynth, owned by a user, an org or the server |
+| Bot | Something that acts on krystallos, owned by a user, an org or the server |
 | Service | An external system registered from a manifest and installed into orgs, or the server's own behavior |
 | Identity | The signature on an action, written like `user:alice/claude@host`. Can be derived with `/`. Created on purpose, active or disabled (proposed) |
 | Session | One run of an identity. Opened freely by the identity, nests, and holds a short-lived credential (proposed) |

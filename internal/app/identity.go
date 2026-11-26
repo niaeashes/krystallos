@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"gitsynth/internal/ident"
-	"gitsynth/internal/store"
+	"krystallos/internal/ident"
+	"krystallos/internal/store"
 )
 
 // Actor is an authenticated identity.
@@ -80,11 +80,11 @@ func (a *App) Initialize(ctx context.Context, host string) error {
 		if _, err := tx.Exec(`INSERT INTO meta (key, value) VALUES ('host', ?)`, host); err != nil {
 			return err
 		}
-		m := Manifest{Name: "gitsynth", Description: "The server's own behavior: merge commits, reconciliation.", Permissions: []string{}}
-		if _, err := createPrincipalTx(tx, ident.Service, "gitsynth", false, "", mustJSON(m)); err != nil {
+		m := Manifest{Name: "krystallos", Description: "The server's own behavior: merge commits, reconciliation.", Permissions: []string{}}
+		if _, err := createPrincipalTx(tx, ident.Service, "krystallos", false, "", mustJSON(m)); err != nil {
 			return err
 		}
-		_, err := tx.Append("service.registered", store.Scope{}, map[string]any{"id": "service:gitsynth", "builtin": true})
+		_, err := tx.Append("service.registered", store.Scope{}, map[string]any{"id": "service:krystallos", "builtin": true})
 		return err
 	})
 	return err
@@ -94,7 +94,7 @@ func (a *App) Initialize(ctx context.Context, host string) error {
 func (a *App) Host(ctx context.Context) (string, error) {
 	host, err := a.Store.Meta(ctx, "host")
 	if err == nil && host == "" {
-		err = errors.New("this data directory is not initialized; run `gitsynth admin init` first")
+		err = errors.New("this data directory is not initialized; run `kry admin init` first")
 	}
 	return host, err
 }
@@ -522,7 +522,7 @@ func (a *App) IssueToken(ctx context.Context, by Actor, identity string, ttl tim
 	if target.String() == SystemActor.Identity {
 		return IssuedToken{}, errf(http.StatusForbidden, "the built-in service has no tokens")
 	}
-	tok := IssuedToken{ID: "cred_" + randomString(10), Identity: target.String(), Token: "gs_" + randomString(32),
+	tok := IssuedToken{ID: "cred_" + randomString(10), Identity: target.String(), Token: "kr_" + randomString(32),
 		CommitterEmail: a.CommitEmail(ctx, target.String())}
 	if ttl > 0 {
 		tok.ExpiresAt = time.Now().UTC().Add(ttl).Format(time.RFC3339)

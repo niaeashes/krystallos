@@ -13,7 +13,7 @@ import (
 	"slices"
 	"strings"
 
-	"gitsynth/internal/store"
+	"krystallos/internal/store"
 )
 
 // Repo is a repository and its settings.
@@ -84,7 +84,7 @@ func (a *App) GrantOrg(ctx context.Context, by Actor, org, identity, set string)
 	return err
 }
 
-// CreateRepo creates a bare repository with gitsynth's hooks installed.
+// CreateRepo creates a bare repository with krystallos's hooks installed.
 func (a *App) CreateRepo(ctx context.Context, by Actor, org, name string) (Repo, error) {
 	if err := validName("repository", name); err != nil {
 		return Repo{}, err
@@ -168,7 +168,7 @@ func (a *App) installHook(repoPath string) (bool, error) {
 // refused. serve calls this before anything can update a ref.
 func (a *App) InstallHooks(ctx context.Context) error {
 	if a.cfg.HookBin == "" {
-		return errors.New("no gitsynth binary to point the hooks at")
+		return errors.New("no kry binary to point the hooks at")
 	}
 	repos, err := a.Repos(ctx)
 	if err != nil {

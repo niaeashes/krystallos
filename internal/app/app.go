@@ -1,4 +1,4 @@
-// Package app holds gitsynth's domain logic. Every change goes through
+// Package app holds krystallos's domain logic. Every change goes through
 // store.Write, so it is recorded as an event signed by an identity in the same
 // transaction that updates the projections.
 package app
@@ -20,16 +20,16 @@ import (
 	"strings"
 	"sync"
 
-	"gitsynth/internal/gitx"
-	"gitsynth/internal/ident"
-	"gitsynth/internal/store"
+	"krystallos/internal/gitx"
+	"krystallos/internal/ident"
+	"krystallos/internal/store"
 )
 
 // Config is where the app keeps its data and which binaries it runs.
 type Config struct {
 	DataDir string
 	GitBin  string
-	// HookBin is the gitsynth binary that repository hooks call back into.
+	// HookBin is the kry binary that repository hooks call back into.
 	HookBin string
 }
 
@@ -53,14 +53,18 @@ type App struct {
 	internalSecret string
 }
 
-// SystemActor is the built-in service service:gitsynth, which signs what the
+// SystemActor is the built-in service service:krystallos, which signs what the
 // server does on its own (merge commits, reconciliation). UnattributedActor
 // marks ref changes that reached a repository without going through the
 // server; it is not an identity anyone holds.
 var (
-	SystemActor       = store.Actor{Identity: "service:gitsynth", Principal: "service:gitsynth"}
+	SystemActor       = store.Actor{Identity: "service:krystallos", Principal: "service:krystallos"}
 	UnattributedActor = store.Actor{Identity: ident.Unattributed, Principal: ident.Unattributed}
 )
+
+// ErrRenamedDataDir means the data directory was made when this server was
+// called gitsynth. Its log cannot be verified under the new name.
+var ErrRenamedDataDir = errors.New("this data directory was made by gitsynth, this server's earlier name, and cannot be read; create a new one with `kry admin init`")
 
 // Open opens the data directory, creating it if needed.
 func Open(ctx context.Context, cfg Config) (*App, error) {
@@ -78,10 +82,16 @@ func Open(ctx context.Context, cfg Config) (*App, error) {
 		return nil, err
 	}
 	cfg.DataDir = dataDir
+	// A data directory from before the server was renamed holds gitsynth.db,
+	// whose log is hashed under the old name. It is refused rather than
+	// started over beside the old database.
+	if _, err := os.Stat(filepath.Join(dataDir, "gitsynth.db")); err == nil {
+		return nil, ErrRenamedDataDir
+	}
 	if cfg.GitBin == "" {
 		cfg.GitBin = "git"
 	}
-	st, err := store.Open(filepath.Join(dataDir, "gitsynth.db"))
+	st, err := store.Open(filepath.Join(dataDir, "krystallos.db"))
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitsynth/internal/store"
+	"krystallos/internal/store"
 )
 
 // TestEnableBringsNothingBack disables an identity the way a server from

@@ -11,8 +11,8 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"gitsynth/internal/ident"
-	"gitsynth/internal/store"
+	"krystallos/internal/ident"
+	"krystallos/internal/store"
 )
 
 // An SSH key is a credential of one identity, like a standing token: it
@@ -47,7 +47,7 @@ type SSHKey struct {
 }
 
 // ParseSSHKey reads one public key in authorized_keys form ("ssh-ed25519
-// AAAA... comment") and checks that it is a kind gitsynth accepts. The
+// AAAA... comment") and checks that it is a kind krystallos accepts. The
 // comment comes back as the key's default name.
 func ParseSSHKey(text string) (ssh.PublicKey, string, error) {
 	text = strings.TrimSpace(text)
@@ -62,7 +62,7 @@ func ParseSSHKey(text string) (ssh.PublicKey, string, error) {
 		return nil, "", errf(http.StatusBadRequest, "one key at a time: the text holds more than one")
 	}
 	if len(options) > 0 {
-		// gitsynth honors none of authorized_keys' options; accepting them
+		// krystallos honors none of authorized_keys' options; accepting them
 		// would suggest that "no-touch-required" or "from=" did something.
 		return nil, "", errf(http.StatusBadRequest, "authorized_keys options (%s) are not supported: give the key alone", strings.Join(options, ","))
 	}

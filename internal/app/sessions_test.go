@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"gitsynth/internal/store"
+	"krystallos/internal/store"
 )
 
 func wantCode(t *testing.T, err error, code int, what string) {

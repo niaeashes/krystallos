@@ -1,20 +1,20 @@
-# gitsynth behind a reverse proxy that terminates TLS (see deploy/Caddyfile).
-# Install as /etc/systemd/system/gitsynth.service; docs/server.md has the
+# krystallos behind a reverse proxy that terminates TLS (see deploy/Caddyfile).
+# Install as /etc/systemd/system/krystallos.service; docs/server.md has the
 # steps.
 
 [Unit]
-Description=gitsynth Git forge
+Description=krystallos Git forge
 After=network.target
 
 [Service]
 # The server must run as the user that owns the data directory: it runs git
 # with that user's git config ignored, so safe.directory cannot excuse
 # repositories owned by anyone else.
-User=gitsynth
-Group=gitsynth
-ExecStart=/usr/local/bin/gitsynth serve --data /var/lib/gitsynth --listen 127.0.0.1:3000
+User=krystallos
+Group=krystallos
+ExecStart=/usr/local/bin/kry serve --data /var/lib/krystallos --listen 127.0.0.1:3000
 # git expects a home directory; keep it inside the data directory.
-Environment=HOME=/var/lib/gitsynth
+Environment=HOME=/var/lib/krystallos
 Restart=on-failure
 RestartSec=5s
 # On stop, SIGTERM goes to the server alone, which lets requests in flight
@@ -31,7 +31,7 @@ NoNewPrivileges=yes
 CapabilityBoundingSet=
 # Everything but the data directory (and a private /tmp) is read-only.
 ProtectSystem=strict
-ReadWritePaths=/var/lib/gitsynth
+ReadWritePaths=/var/lib/krystallos
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

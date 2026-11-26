@@ -23,7 +23,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// oauthAgent is an OAuth client of gitsynth's MCP endpoints, the way Claude
+// oauthAgent is an OAuth client of krystallos's MCP endpoints, the way Claude
 // Code is one: it finds the authorization server from a 401, registers,
 // sends the person's browser to authorize, and trades the code for tokens.
 type oauthAgent struct {
@@ -133,12 +133,12 @@ func (o *oauthAgent) connect(b *browser, resource string, create bool) tokens {
 }
 
 // follow goes where the consent page sends the browser after the person
-// answers: gitsynth's one-time /oauth/return URL, whose 302 names the
+// answers: krystallos's one-time /oauth/return URL, whose 302 names the
 // client's redirect URI with the answer. It returns that.
 func (o *oauthAgent) follow(redirect string) *url.URL {
 	o.t.Helper()
 	if !strings.HasPrefix(redirect, o.h.url+"/oauth/return/ort_") {
-		o.t.Fatalf("the consent page should be sent to gitsynth's return URL, not to the client: %s", redirect)
+		o.t.Fatalf("the consent page should be sent to krystallos's return URL, not to the client: %s", redirect)
 	}
 	resp, err := o.http.Get(o.h.local(redirect))
 	if err != nil {
@@ -185,7 +185,7 @@ func connectHolder(t *testing.T, endpoint string, holder *tokenHolder) mcpClient
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	client := mcp.NewClient(&mcp.Implementation{Name: "gitsynth-test", Version: "1.0"}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "krystallos-test", Version: "1.0"}, nil)
 	cs, err := client.Connect(ctx, &mcp.StreamableClientTransport{
 		Endpoint: endpoint, HTTPClient: &http.Client{Transport: holder}, MaxRetries: -1,
 	}, nil)
@@ -226,7 +226,7 @@ func postStatus(t *testing.T, endpoint, token string) (int, string) {
 // init, then signs in with it in a fresh browser, as the person would.
 func passkeyBrowser(t *testing.T, h *harness, regToken string) *browser {
 	t.Helper()
-	rp := virtualwebauthn.RelyingParty{ID: "localhost", Name: "gitsynth", Origin: h.url}
+	rp := virtualwebauthn.RelyingParty{ID: "localhost", Name: "krystallos", Origin: h.url}
 	authn := virtualwebauthn.NewAuthenticatorWithOptions(virtualwebauthn.AuthenticatorOptions{UserHandle: []byte("user:alice")})
 	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
 	var begin struct {
@@ -295,7 +295,7 @@ func TestOAuthMCP(t *testing.T) {
 	if err := os.WriteFile(caFile, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: docs.Certificate().Raw}), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	h.serverEnv = append(h.serverEnv, "GITSYNTH_TEST_CLIENT_METADATA_CA="+caFile)
+	h.serverEnv = append(h.serverEnv, "KRYSTALLOS_TEST_CLIENT_METADATA_CA="+caFile)
 
 	out := h.run("admin", "init", "--data", h.data, "--user", "alice")
 	aliceTok, regToken := tokenFrom(t, out), linkToken(t, out)
@@ -479,7 +479,7 @@ func TestOAuthMCP(t *testing.T) {
 	// Everything is recorded under the sessions.
 	evs := h.events(alice)
 	requireEvent(t, evs, "the MCP session's session opened", func(e event) bool {
-		return e.Type == "session.opened" && e.Identity == "user:alice/claude" && e.Payload["id"] == sesID && e.Payload["label"] == "gitsynth-test 1.0"
+		return e.Type == "session.opened" && e.Identity == "user:alice/claude" && e.Payload["id"] == sesID && e.Payload["label"] == "krystallos-test 1.0"
 	})
 	requireEvent(t, evs, "the issue under the MCP session", func(e event) bool {
 		return e.Type == "issue.created" && e.Identity == "user:alice/claude" && e.Session == sesID

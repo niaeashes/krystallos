@@ -8,20 +8,20 @@ It needs Go 1.27, Node 22 or later, and git 2.38 or later.
 scripts/build.sh
 ```
 
-This builds the web UI, then the server with the UI inside, into `bin/gitsynth`. `GOOS` and `GOARCH` pass through, so `GOOS=linux GOARCH=amd64 scripts/build.sh bin/gitsynth-linux-amd64` cross-compiles.
+This builds the web UI, then the server with the UI inside, into `bin/kry`. `GOOS` and `GOARCH` pass through, so `GOOS=linux GOARCH=amd64 scripts/build.sh bin/kry-linux-amd64` cross-compiles.
 
 ## Working on the web UI
 
 A plain Go build has no UI inside. Vite serves it instead, reloading as you edit, and passes `/api` and `/git` through to the server. With a data directory made by `admin init` (see the README):
 
 ```bash
-go build -o bin/gitsynth ./cmd/gitsynth
-./bin/gitsynth serve --data ./data
+go build -o bin/kry ./cmd/kry
+./bin/kry serve --data ./data
 npm --prefix web install
 npm --prefix web run dev
 ```
 
-The UI is then at `http://localhost:5173`, and passkeys work there too. For links that open there, give `admin` `--url http://localhost:5173`. `scripts/demo-seed.sh gs_YOUR_TOKEN` fills a running server with a demo org, repository, issue, plan and change set.
+The UI is then at `http://localhost:5173`, and passkeys work there too. For links that open there, give `admin` `--url http://localhost:5173`. `scripts/demo-seed.sh kr_YOUR_TOKEN` fills a running server with a demo org, repository, issue, plan and change set.
 
 ## Tests
 
@@ -36,7 +36,7 @@ The end-to-end tests run the real git and a real server, without your git config
 
 | Path | Contents |
 |---|---|
-| `cmd/gitsynth` | The `serve`, `admin`, `hook` and `version` commands, and the end-to-end tests |
+| `cmd/kry` | The `serve`, `admin`, `hook` and `version` commands, and the end-to-end tests |
 | `internal/ident` | Identity strings: parsing, derivation, ancestry |
 | `internal/store` | The hash-chained event log and the schema |
 | `internal/app` | Users, bots, services and identities, permissions, ideas, issues, plans and change sets, merging, reading code |
@@ -61,4 +61,4 @@ The script runs the tests and builds the tag from a clean clone, so nothing chec
 - an archive per platform (linux/amd64 and linux/arm64), holding the binary, `deploy/`, the README, the LICENSE and `docs/server.md`.
 - `SHA256SUMS`.
 
-Every binary is stamped with the tag, which `gitsynth version` prints. Publish the files somewhere other than a gitsynth server that runs them: when that server is down, the release that fixes it has to come from elsewhere.
+Every binary is stamped with the tag, which `kry version` prints. Publish the files somewhere other than a krystallos server that runs them: when that server is down, the release that fixes it has to come from elsewhere.

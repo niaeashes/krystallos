@@ -1,7 +1,7 @@
 // Package ident parses and formats identity strings.
 //
 // An identity is written <kind>:<root>(/<label>)*[@<host>], for example
-// user:alice, user:alice/claude/explorer or bot:devbox@gitsynth.example.com.
+// user:alice, user:alice/claude/explorer or bot:devbox@krystallos.example.com.
 // The kind and root name the resource that holds the identity (a user, a
 // bot or a service); each label derives a new identity from the one before.
 package ident

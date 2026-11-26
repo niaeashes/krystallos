@@ -18,11 +18,11 @@ import (
 	"time"
 	"unicode"
 
-	"gitsynth/internal/ident"
-	"gitsynth/internal/store"
+	"krystallos/internal/ident"
+	"krystallos/internal/store"
 )
 
-// gitsynth is the OAuth 2.1 authorization server for its own MCP endpoints,
+// krystallos is the OAuth 2.1 authorization server for its own MCP endpoints,
 // following MCP's authorization spec. A client (Claude Code, say) asks to
 // act as one identity at that identity's endpoint; the person approves it in
 // a signed-in browser, which makes a grant; the client trades the code for
@@ -123,7 +123,7 @@ type authCode struct {
 // ---- clients ----
 
 // ClientRegistration is a Dynamic Client Registration request (RFC 7591).
-// Fields gitsynth has no use for, such as logo_uri, are ignored.
+// Fields krystallos has no use for, such as logo_uri, are ignored.
 type ClientRegistration struct {
 	RedirectURIs            []string `json:"redirect_uris"`
 	ClientName              string   `json:"client_name"`
@@ -135,7 +135,7 @@ type ClientRegistration struct {
 // RegisterClient registers a public client by Dynamic Client Registration.
 // Anyone may; the person sees the client's name marked as its own claim.
 func (a *App) RegisterClient(ctx context.Context, reg ClientRegistration) (OAuthClient, time.Time, error) {
-	c := OAuthClient{ID: "gsc_" + randomString(16), Via: viaRegistration}
+	c := OAuthClient{ID: "krc_" + randomString(16), Via: viaRegistration}
 	if err := checkClientMetadata(&c, reg.ClientName, reg.RedirectURIs, reg.TokenEndpointAuthMethod, reg.GrantTypes, reg.ResponseTypes); err != nil {
 		return OAuthClient{}, time.Time{}, &OAuthError{Status: http.StatusBadRequest, Code: "invalid_client_metadata", Description: err.Error()}
 	}
@@ -231,7 +231,7 @@ var schemeRe = regexp.MustCompile(`^[a-z][a-z0-9+.-]*$`)
 // page, or opens another kind of connection. None is a place a native app
 // receives a code, so a redirect URI never uses one. The browser's
 // handling of a few (javascript:, data:) is how a redirect becomes script
-// in gitsynth's origin; the rest are refused for the same reason, that
+// in krystallos's origin; the rest are refused for the same reason, that
 // they act inside the browser.
 var browserSchemes = map[string]bool{
 	// Script, and content the browser renders itself.
@@ -563,7 +563,7 @@ func (a *App) ApproveAuthorization(ctx context.Context, by Actor, id string, cre
 		// the code could; the first tokens extend it.
 		until := now.Add(oauthCodeTTL + time.Minute).Format(time.RFC3339)
 		if _, err := tx.Exec(`INSERT INTO credentials (id, identity, hash, expires_at, kind) VALUES (?, ?, ?, ?, ?)`,
-			grantCred, r.Identity, hashToken("gsg_"+randomString(32)), until, credOAuthGrant); err != nil {
+			grantCred, r.Identity, hashToken("krg_"+randomString(32)), until, credOAuthGrant); err != nil {
 			return err
 		}
 		if _, err := tx.Exec(`INSERT INTO credential_audiences (credential, audience, grant_id, client) VALUES (?, ?, ?, ?)`,
@@ -584,7 +584,7 @@ func (a *App) ApproveAuthorization(ctx context.Context, by Actor, id string, cre
 		return AuthRequest{}, "", err
 	}
 	a.dropAuthRequest(id)
-	code := "gsa_" + randomString(32)
+	code := "kra_" + randomString(32)
 	m := &a.oauth
 	m.mu.Lock()
 	if m.codes == nil {
@@ -620,8 +620,8 @@ func (a *App) DenyAuthorization(ctx context.Context, by Actor, id string) (AuthR
 // KeepReturn keeps where the browser goes once the person has answered (the
 // client's redirect URI, with the code or the error) and returns a one-time
 // ID for it. /oauth/return/{id} sends the browser there with a 302, so the
-// web UI only ever navigates to gitsynth itself: a redirect URI that should
-// not have been accepted still never runs as script in gitsynth's origin.
+// web UI only ever navigates to krystallos itself: a redirect URI that should
+// not have been accepted still never runs as script in krystallos's origin.
 // The ID works once, within a minute.
 func (a *App) KeepReturn(location string) string {
 	m := &a.oauth
@@ -818,7 +818,7 @@ func (a *App) issueTokensTx(ctx context.Context, tx *store.Tx, g grantRow, rotat
 		return TokenResponse{}, oauthErr(http.StatusBadRequest, "invalid_grant", "%s", err.Error())
 	}
 	now := time.Now().UTC()
-	access, refresh := "gso_"+randomString(32), "gsr_"+randomString(32)
+	access, refresh := "kro_"+randomString(32), "krr_"+randomString(32)
 	accessID, refreshID := "cred_"+randomString(10), "cred_"+randomString(10)
 	accessUntil := now.Add(OAuthAccessTTL).Format(time.RFC3339)
 	refreshUntil := now.Add(OAuthRefreshTTL).Format(time.RFC3339)

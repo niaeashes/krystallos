@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# Build gitsynth with the web UI inside: the web build first, then the Go
+# Build krystallos with the web UI inside: the web build first, then the Go
 # build that embeds it (-tags webui).
 #
 #   scripts/build.sh [OUTPUT]
 #
-# OUTPUT defaults to bin/gitsynth. GOOS and GOARCH pass through to go build,
+# OUTPUT defaults to bin/kry. GOOS and GOARCH pass through to go build,
 # and the web build is the same for every platform, so
 #
-#   GOOS=linux GOARCH=amd64 scripts/build.sh bin/gitsynth-linux-amd64
+#   GOOS=linux GOARCH=amd64 scripts/build.sh bin/kry-linux-amd64
 #
 # cross-compiles (the SQLite driver is pure Go).
 set -euo pipefail
 
-out=${1:-bin/gitsynth}
+out=${1:-bin/kry}
 case $out in
 /*) ;;
 *) out=$PWD/$out ;;
@@ -26,5 +26,5 @@ if [ ! -f web/node_modules/.package-lock.json ] || [ web/package-lock.json -nt w
 fi
 npm --prefix web run build
 
-go build -tags webui -o "$out" ./cmd/gitsynth
+go build -tags webui -o "$out" ./cmd/kry
 echo "built $out"

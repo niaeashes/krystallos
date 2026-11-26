@@ -24,7 +24,7 @@ export function ConsentPage() {
     try {
       const path = `/api/oauth/requests/${encodeURIComponent(id)}/${approve ? 'approve' : 'deny'}`
       const out = await post<{ redirect: string }>(path, approve ? { create: (req.data?.create?.length ?? 0) > 0 } : undefined)
-      // The answer is gitsynth's own /oauth/return/..., whose 302 takes the
+      // The answer is krystallos's own /oauth/return/..., whose 302 takes the
       // browser on to the client. Never navigate anywhere else from here.
       const next = new URL(out.redirect, window.location.href)
       if (next.protocol !== 'https:' && next.protocol !== 'http:') {
@@ -58,7 +58,7 @@ export function ConsentPage() {
   return (
     <AuthCard title="Connect an agent">
       <p>
-        <strong>{name}</strong> asks to act as <Identity handle={r.identity} /> through gitsynth's MCP endpoint.
+        <strong>{name}</strong> asks to act as <Identity handle={r.identity} /> through krystallos's MCP endpoint.
       </p>
       <p className="muted small">
         {r.client.via === 'metadata_document' ? (

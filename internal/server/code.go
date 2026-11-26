@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"gitsynth/internal/app"
+	"krystallos/internal/app"
 )
 
 // cloneURL is where a repository is cloned from: under the server's public

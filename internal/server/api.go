@@ -5,7 +5,7 @@ import (
 	"slices"
 	"time"
 
-	"gitsynth/internal/app"
+	"krystallos/internal/app"
 )
 
 func (s *Server) me(r *http.Request, actor app.Actor) (any, error) {

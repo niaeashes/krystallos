@@ -24,7 +24,7 @@ export function parseIdentity(id: string): ParsedIdentity {
 // bots and services carry their kind in front.
 export function Identity({ handle }: { handle: string }) {
   const id = parseIdentity(handle)
-  const style = handle === 'service:gitsynth' ? 'server' : id.kind
+  const style = handle === 'service:krystallos' ? 'server' : id.kind
   return (
     <span className={`identity identity-${style}`} title={handle}>
       <span className="identity-principal">

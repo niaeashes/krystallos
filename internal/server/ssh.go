@@ -23,8 +23,8 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"gitsynth/internal/app"
-	"gitsynth/internal/gitx"
+	"krystallos/internal/app"
+	"krystallos/internal/gitx"
 )
 
 // Git over SSH: the same repositories, permission checks, push checks and
@@ -43,7 +43,7 @@ const (
 	sshShutdownGrace = 5 * time.Second
 	// sshCredential names the extension that carries, from authentication
 	// to the command, the ID of the key the client proved it holds.
-	sshCredential = "gitsynth-credential"
+	sshCredential = "krystallos-credential"
 )
 
 // HostKeyFile is the SSH host key's file in the data directory, so that
@@ -75,7 +75,7 @@ func newHostKey(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	block, err := ssh.MarshalPrivateKey(priv, "gitsynth host key")
+	block, err := ssh.MarshalPrivateKey(priv, "krystallos host key")
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (s *Server) ServeSSH(ctx context.Context, ln net.Listener, hostKey ssh.Sign
 	connCtx, cancelConns := context.WithCancel(context.WithoutCancel(ctx))
 	defer cancelConns()
 	cfg := &ssh.ServerConfig{
-		ServerVersion: "SSH-2.0-gitsynth",
+		ServerVersion: "SSH-2.0-krystallos",
 		// Called for every key a client offers, before it proves it holds
 		// one; the library accepts only once the signature checks out, and
 		// then hands over the Permissions returned for that very key.
@@ -201,7 +201,7 @@ func (s *Server) serveSSHConn(ctx context.Context, nc net.Conn, cfg *ssh.ServerC
 	defer idle.Stop()
 	for nch := range chans {
 		if nch.ChannelType() != "session" {
-			nch.Reject(ssh.UnknownChannelType, "gitsynth serves git only")
+			nch.Reject(ssh.UnknownChannelType, "krystallos serves git only")
 			continue
 		}
 		ch, chReqs, err := nch.Accept()
@@ -246,9 +246,9 @@ func (s *Server) serveSSHSession(ctx context.Context, credential string, ch ssh.
 			idle.Stop()
 			go refuseSSHRequests(reqs)
 			if act, err := s.App.SSHKeyActor(ctx, credential); err != nil {
-				fmt.Fprintf(ch.Stderr(), "gitsynth: %s\n", sshErrorMessage(err))
+				fmt.Fprintf(ch.Stderr(), "krystallos: %s\n", sshErrorMessage(err))
 			} else {
-				fmt.Fprintf(ch.Stderr(), "Hi %s! You have authenticated to gitsynth, which serves git only: there is no shell.\n", act.Identity)
+				fmt.Fprintf(ch.Stderr(), "Hi %s! You have authenticated to krystallos, which serves git only: there is no shell.\n", act.Identity)
 			}
 			exitStatus(ch, 1)
 			return
@@ -300,7 +300,7 @@ func sshErrorMessage(err error) string {
 // remote errors are.
 func (s *Server) sshCommand(ctx context.Context, credential, protocol, command string, ch ssh.Channel) uint32 {
 	fail := func(msg string) uint32 {
-		fmt.Fprintf(ch.Stderr(), "gitsynth: %s\n", msg)
+		fmt.Fprintf(ch.Stderr(), "krystallos: %s\n", msg)
 		return 1
 	}
 	service, fullName, err := parseGitCommand(command)
@@ -375,7 +375,7 @@ func (s *Server) sshGit(ctx context.Context, repo app.Repo, env []string, ch ssh
 			return
 		}
 		if err := relay(ch, stdin); err != nil {
-			fmt.Fprintf(ch.Stderr(), "gitsynth: %s\n", err)
+			fmt.Fprintf(ch.Stderr(), "krystallos: %s\n", err)
 		}
 	}()
 	if err := cmd.Wait(); err != nil {
@@ -470,7 +470,7 @@ func parseGitCommand(command string) (service, fullName string, err error) {
 	switch service {
 	case "git-upload-pack", "git-receive-pack":
 	default:
-		return "", "", errors.New("gitsynth serves git-upload-pack and git-receive-pack only: there is no shell")
+		return "", "", errors.New("krystallos serves git-upload-pack and git-receive-pack only: there is no shell")
 	}
 	path, err := shellWord(strings.TrimSpace(arg))
 	if err != nil {

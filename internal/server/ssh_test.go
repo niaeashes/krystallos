@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"gitsynth/internal/app"
-	"gitsynth/internal/gitx"
+	"krystallos/internal/app"
+	"krystallos/internal/gitx"
 )
 
 func TestParseGitCommand(t *testing.T) {

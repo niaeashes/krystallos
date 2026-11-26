@@ -35,7 +35,7 @@ func (b *browser) do(method, path string, body io.Reader, csrf bool) (int, []byt
 		req.Header.Set("Content-Type", "application/json")
 	}
 	if csrf {
-		req.Header.Set("X-Gitsynth-CSRF", "1")
+		req.Header.Set("X-Krystallos-CSRF", "1")
 	}
 	resp, err := b.client.Do(req)
 	if err != nil {
@@ -91,8 +91,8 @@ func TestBrowserSignIn(t *testing.T) {
 	regToken := linkToken(t, out)
 	h.start()
 
-	rp := virtualwebauthn.RelyingParty{ID: "localhost", Name: "gitsynth", Origin: h.url}
-	vite := virtualwebauthn.RelyingParty{ID: "localhost", Name: "gitsynth", Origin: "http://localhost:5173"}
+	rp := virtualwebauthn.RelyingParty{ID: "localhost", Name: "krystallos", Origin: h.url}
+	vite := virtualwebauthn.RelyingParty{ID: "localhost", Name: "krystallos", Origin: "http://localhost:5173"}
 	authn := virtualwebauthn.NewAuthenticatorWithOptions(virtualwebauthn.AuthenticatorOptions{UserHandle: []byte("user:alice")})
 	cred := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
 

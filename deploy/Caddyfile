@@ -1,10 +1,10 @@
-# Caddy in front of gitsynth: install as /etc/caddy/Caddyfile, with your
-# domain in place of gitsynth.example.com (the host given to admin init).
+# Caddy in front of krystallos: install as /etc/caddy/Caddyfile, with your
+# domain in place of krystallos.example.com (the host given to admin init).
 #
 # Caddy gets and renews the certificate itself and redirects HTTP to HTTPS;
 # both need ports 80 and 443 open.
 #
-# What gitsynth needs from the proxy is Caddy's default behaviour:
+# What krystallos needs from the proxy is Caddy's default behaviour:
 # - Responses of type text/event-stream are flushed to the client at once,
 #   so the event stream (SSE) needs no flush_interval.
 # - There is no limit on request bodies (no request_body max_size), so pushes
@@ -16,6 +16,6 @@
 # - No header settings: the server ignores X-Forwarded-* and takes its address
 #   from the host fixed at admin init.
 
-gitsynth.example.com {
+krystallos.example.com {
 	reverse_proxy 127.0.0.1:3000
 }

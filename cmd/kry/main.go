@@ -1,4 +1,4 @@
-// Command gitsynth is the gitsynth server, its admin tool, and the hook that
+// Command kry is the krystallos server, its admin tool, and the hook that
 // repositories call back into.
 package main
 
@@ -28,25 +28,25 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"gitsynth/internal/accesslog"
-	"gitsynth/internal/app"
-	"gitsynth/internal/server"
-	"gitsynth/web"
+	"krystallos/internal/accesslog"
+	"krystallos/internal/app"
+	"krystallos/internal/server"
+	"krystallos/web"
 )
 
 const usage = `usage:
-  gitsynth serve [--data DIR] [--listen ADDR] [--url URL] [--origin URLS] [--git BIN] [--web off|DIR] [--max-git N]
+  kry serve [--data DIR] [--listen ADDR] [--url URL] [--origin URLS] [--git BIN] [--web off|DIR] [--max-git N]
                  [--ssh ADDR [--ssh-host HOST[:PORT]]]
-  gitsynth admin init       --data DIR --user NAME [--host HOST] [--url URL]   set the host and create the first (admin) user
-  gitsynth admin add-user   --data DIR --user NAME [--url URL]
-  gitsynth admin invite     --data DIR [--org ORG --set SET] [--url URL]  one-time link for someone to join
-  gitsynth admin passkey-link --data DIR --user NAME [--url URL]   one-time link to add a passkey
-  gitsynth admin login-link   --data DIR --user NAME [--url URL]   one-time sign-in link, for recovery
-  gitsynth admin token      --data DIR --identity ID [--ttl DURATION]   a standing token; each run opens a session with it
-  gitsynth admin verify     --data DIR                      check the event log's hash chain
-  gitsynth admin reconcile  --data DIR                      compare records with the repositories on disk
-  gitsynth admin access-log --data DIR [--identity ID] [--limit N]
-  gitsynth version                                          the version this binary was built from
+  kry admin init       --data DIR --user NAME [--host HOST] [--url URL]   set the host and create the first (admin) user
+  kry admin add-user   --data DIR --user NAME [--url URL]
+  kry admin invite     --data DIR [--org ORG --set SET] [--url URL]  one-time link for someone to join
+  kry admin passkey-link --data DIR --user NAME [--url URL]   one-time link to add a passkey
+  kry admin login-link   --data DIR --user NAME [--url URL]   one-time sign-in link, for recovery
+  kry admin token      --data DIR --identity ID [--ttl DURATION]   a standing token; each run opens a session with it
+  kry admin verify     --data DIR                      check the event log's hash chain
+  kry admin reconcile  --data DIR                      compare records with the repositories on disk
+  kry admin access-log --data DIR [--identity ID] [--limit N]
+  kry version                                          the version this binary was built from
 
 --url is the server's public address, where people open the web UI and git
 and MCP clients connect: scheme://host[:port], no path. It defaults to
@@ -87,7 +87,7 @@ func main() {
 		os.Exit(2)
 	}
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "gitsynth:", err)
+		fmt.Fprintln(os.Stderr, "kry:", err)
 		os.Exit(1)
 	}
 }
@@ -175,14 +175,14 @@ func cmdServe(args []string) error {
 	}
 	// A test seam: tests serve Client ID Metadata Documents from a local TLS
 	// server, which the guarded fetch would otherwise refuse.
-	if caFile := os.Getenv("GITSYNTH_TEST_CLIENT_METADATA_CA"); caFile != "" {
+	if caFile := os.Getenv("KRYSTALLOS_TEST_CLIENT_METADATA_CA"); caFile != "" {
 		pem, err := os.ReadFile(caFile)
 		if err != nil {
 			return err
 		}
 		pool := x509.NewCertPool()
 		if !pool.AppendCertsFromPEM(pem) {
-			return fmt.Errorf("GITSYNTH_TEST_CLIENT_METADATA_CA: no certificate in %s", caFile)
+			return fmt.Errorf("KRYSTALLOS_TEST_CLIENT_METADATA_CA: no certificate in %s", caFile)
 		}
 		slog.Warn("TEST ONLY: client metadata documents are fetched from loopback addresses, trusting " + caFile)
 		a.ConfigureMetadataFetch(app.MetadataFetchConfig{RootCAs: pool, AllowLoopback: true})
@@ -239,7 +239,7 @@ func cmdServe(args []string) error {
 			stop()
 			<-sshDone
 		}()
-		slog.Info("gitsynth serving git over ssh", "addr", sln.Addr().String(), "ssh", srv.SSH,
+		slog.Info("krystallos serving git over ssh", "addr", sln.Addr().String(), "ssh", srv.SSH,
 			"host_key", ssh.FingerprintSHA256(hostKey.PublicKey()))
 	}
 
@@ -263,7 +263,7 @@ func cmdServe(args []string) error {
 			isrv.Close()
 		}
 	}()
-	slog.Info("gitsynth listening", "version", version(), "addr", ln.Addr().String(), "url", addr.URL, "origins", addr.Origins, "data", a.DataDir(), "max_git", *maxGit)
+	slog.Info("krystallos listening", "version", version(), "addr", ln.Addr().String(), "url", addr.URL, "origins", addr.Origins, "data", a.DataDir(), "max_git", *maxGit)
 	if err := hs.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		stop()
 		<-stopped
@@ -462,7 +462,7 @@ func cmdHook(args []string) int {
 		return 0
 	}
 
-	url, secret := os.Getenv("GITSYNTH_INTERNAL_URL"), os.Getenv("GITSYNTH_INTERNAL_SECRET")
+	url, secret := os.Getenv("KRYSTALLOS_INTERNAL_URL"), os.Getenv("KRYSTALLOS_INTERNAL_SECRET")
 	startedByServer := url != ""
 	if !startedByServer {
 		// Someone ran git directly on the server. Report it if the server is
@@ -470,7 +470,7 @@ func cmdHook(args []string) int {
 		info, err := app.ReadInternalInfo(*data)
 		if err != nil {
 			if state == "prepared" {
-				fmt.Fprintln(os.Stderr, "gitsynth: server is not running; this ref change will be recorded as unattributed when it starts")
+				fmt.Fprintln(os.Stderr, "kry: server is not running; this ref change will be recorded as unattributed when it starts")
 			}
 			return 0
 		}
@@ -481,21 +481,21 @@ func cmdHook(args []string) int {
 	if err != nil {
 		repoPath = cwd
 	}
-	body, _ := json.Marshal(app.RefTxnRequest{State: state, RepoPath: repoPath, Op: os.Getenv("GITSYNTH_OP"), Updates: updates})
+	body, _ := json.Marshal(app.RefTxnRequest{State: state, RepoPath: repoPath, Op: os.Getenv("KRYSTALLOS_OP"), Updates: updates})
 	req, err := http.NewRequest(http.MethodPost, url+"/internal/ref-txn", bytes.NewReader(body))
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "gitsynth:", err)
+		fmt.Fprintln(os.Stderr, "kry:", err)
 		return 1
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Gitsynth-Internal", secret)
+	req.Header.Set("X-Krystallos-Internal", secret)
 	resp, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
 	if err != nil {
 		if !startedByServer {
-			fmt.Fprintln(os.Stderr, "gitsynth: server unreachable; this ref change will be recorded when it starts")
+			fmt.Fprintln(os.Stderr, "kry: server unreachable; this ref change will be recorded when it starts")
 			return 0
 		}
-		fmt.Fprintln(os.Stderr, "gitsynth: cannot record ref update:", err)
+		fmt.Fprintln(os.Stderr, "kry: cannot record ref update:", err)
 		if state == "prepared" {
 			return 1
 		}
@@ -510,7 +510,7 @@ func cmdHook(args []string) int {
 		if json.Unmarshal(raw, &msg) != nil || msg.Error == "" {
 			msg.Error = strings.TrimSpace(string(raw))
 		}
-		fmt.Fprintln(os.Stderr, "gitsynth:", msg.Error)
+		fmt.Fprintln(os.Stderr, "kry:", msg.Error)
 		if state == "prepared" {
 			return 1
 		}

@@ -9,8 +9,8 @@ import (
 	"slices"
 	"strings"
 
-	"gitsynth/internal/gitx"
-	"gitsynth/internal/store"
+	"krystallos/internal/gitx"
+	"krystallos/internal/store"
 )
 
 func (a *App) resolveBranch(ctx context.Context, repo Repo, branch string) (string, error) {
@@ -238,7 +238,7 @@ func (a *App) Merge(ctx context.Context, by Actor, fullName string, number int) 
 	}
 	token, done := a.NewOp(Op{Actor: SystemActor, OnBehalfOf: by.Identity, Session: by.Session, Repo: repo.FullName, Internal: true, Source: "merge"})
 	defer done()
-	if _, err := a.Git.Output(ctx, repo.Path, a.HookEnv(token), "update-ref", "-m", "gitsynth merge", "refs/heads/"+cs.Base, commit, base); err != nil {
+	if _, err := a.Git.Output(ctx, repo.Path, a.HookEnv(token), "update-ref", "-m", "krystallos merge", "refs/heads/"+cs.Base, commit, base); err != nil {
 		return "", err
 	}
 	_, err = a.Store.Write(ctx, by.Actor, func(tx *store.Tx) error {

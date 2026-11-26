@@ -21,7 +21,7 @@ type Git struct {
 // Cmd prepares a git command in dir with extra environment variables.
 //
 // git runs without the server user's git configuration: the repositories
-// are gitsynth's, not that user's. A core.hooksPath in the global or system
+// are krystallos's, not that user's. A core.hooksPath in the global or system
 // config would make git skip each repository's reference-transaction hook,
 // a "* -diff" in the user's or the system's gitattributes would turn every
 // change set diff into "Binary files differ" and hide the change from

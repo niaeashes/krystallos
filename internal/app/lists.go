@@ -6,8 +6,8 @@ import (
 	"errors"
 	"net/http"
 
-	"gitsynth/internal/ident"
-	"gitsynth/internal/store"
+	"krystallos/internal/ident"
+	"krystallos/internal/store"
 )
 
 // Orgs lists the orgs the actor holds any grant in (all of them for admins).

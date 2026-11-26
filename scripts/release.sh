@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the release archives for a tag, the way a user downloads gitsynth.
+# Build the release archives for a tag, the way a user downloads krystallos.
 #
 #   scripts/release.sh vX.Y.Z
 #
@@ -8,12 +8,12 @@
 # commit whatever is checked out or changed here, and with that commit's own
 # build script. The tests run first. Then, for each platform:
 #
-#   dist/vX.Y.Z/gitsynth-vX.Y.Z-OS-ARCH.tar.gz
-#     gitsynth-vX.Y.Z-OS-ARCH/gitsynth            the server, with the web UI inside
-#     gitsynth-vX.Y.Z-OS-ARCH/deploy/...          the systemd unit and the Caddyfile
-#     gitsynth-vX.Y.Z-OS-ARCH/docs/server.md      how to install and run it
-#     gitsynth-vX.Y.Z-OS-ARCH/README.md
-#     gitsynth-vX.Y.Z-OS-ARCH/LICENSE
+#   dist/vX.Y.Z/krystallos-vX.Y.Z-OS-ARCH.tar.gz
+#     krystallos-vX.Y.Z-OS-ARCH/kry                 the server, with the web UI inside
+#     krystallos-vX.Y.Z-OS-ARCH/deploy/...          the systemd unit and the Caddyfile
+#     krystallos-vX.Y.Z-OS-ARCH/docs/server.md      how to install and run it
+#     krystallos-vX.Y.Z-OS-ARCH/README.md
+#     krystallos-vX.Y.Z-OS-ARCH/LICENSE
 #
 # and dist/vX.Y.Z/SHA256SUMS, which sha256sum -c checks. Publishing them is a
 # separate step. PLATFORMS overrides the default "linux/amd64 linux/arm64".
@@ -61,7 +61,7 @@ else
 	tar_flags=(--uid 0 --gid 0 --uname root --gname root --no-xattrs --no-mac-metadata --no-acls)
 fi
 
-work=$(mktemp -d "${TMPDIR:-/tmp}/gitsynth-release.XXXXXX")
+work=$(mktemp -d "${TMPDIR:-/tmp}/krystallos-release.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 src=$work/src
 git clone --quiet --no-checkout "$root" "$src"
@@ -75,17 +75,17 @@ mkdir -p "$work/out"
 for platform in $platforms; do
 	os=${platform%/*}
 	arch=${platform#*/}
-	name=gitsynth-$tag-$os-$arch
+	name=krystallos-$tag-$os-$arch
 	stage=$work/out/$name
 	mkdir -p "$stage/deploy"
 	# -trimpath keeps this machine's paths out of the binary.
-	GOOS=$os GOARCH=$arch CGO_ENABLED=0 GOFLAGS=-trimpath "$src/scripts/build.sh" "$stage/gitsynth"
-	stamped=$(go version -m "$stage/gitsynth" | awk '$1 == "mod" && $2 == "gitsynth" { print $3 }')
+	GOOS=$os GOARCH=$arch CGO_ENABLED=0 GOFLAGS=-trimpath "$src/scripts/build.sh" "$stage/kry"
+	stamped=$(go version -m "$stage/kry" | awk '$1 == "mod" && $2 == "krystallos" { print $3 }')
 	if [ "$stamped" != "$tag" ]; then
 		echo "release: $name says it is version ${stamped:-unknown}, not $tag" >&2
 		exit 1
 	fi
-	cp "$src/deploy/gitsynth.service" "$src/deploy/Caddyfile" "$stage/deploy/"
+	cp "$src/deploy/krystallos.service" "$src/deploy/Caddyfile" "$stage/deploy/"
 	mkdir -p "$stage/docs"
 	cp "$src/docs/server.md" "$stage/docs/"
 	cp "$src/README.md" "$src/LICENSE" "$stage/"

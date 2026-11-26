@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"gitsynth/internal/store"
+	"krystallos/internal/store"
 )
 
 // ---- Ideas ----

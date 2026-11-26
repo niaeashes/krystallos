@@ -47,7 +47,7 @@ function Layout() {
       <header className="topbar">
         <div className="topbar-inner">
           <Link to="/" className="brand">
-            gitsynth
+            krystallos
           </Link>
           <nav className="topnav">
             <NavLink to="/" end>

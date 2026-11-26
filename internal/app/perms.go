@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"slices"
 
-	"gitsynth/internal/ident"
+	"krystallos/internal/ident"
 )
 
 // Permissions. Each is one operation on one kind of resource.

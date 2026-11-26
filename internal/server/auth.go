@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"gitsynth/internal/app"
+	"krystallos/internal/app"
 )
 
 // Passkey sign-in. These endpoints need no credential: the passkey or the

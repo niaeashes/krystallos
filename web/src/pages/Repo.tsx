@@ -52,7 +52,7 @@ export function RepoPage({ tab }: { tab: Tab }) {
 // them, so an agent's clone never pushes with the person's.
 function sshKeyFile(identity: string) {
   const { labels } = parseIdentity(identity)
-  return labels.length === 0 ? '~/.ssh/id_ed25519' : `~/.ssh/gitsynth_${labels.join('_')}`
+  return labels.length === 0 ? '~/.ssh/id_ed25519' : `~/.ssh/krystallos_${labels.join('_')}`
 }
 
 // cloneCommand makes a clone that belongs to one identity: its config names

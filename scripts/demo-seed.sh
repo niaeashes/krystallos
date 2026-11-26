@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Seed a running gitsynth with a small demo: an org and a repository with a
+# Seed a running krystallos with a small demo: an org and a repository with a
 # few commits, an agent identity for the admin, an idea turned into an issue,
 # a plan written by the agent, and the agent's change set waiting for review.
 #
 #   scripts/demo-seed.sh ADMIN_TOKEN [SERVER_URL]
 #
-# ADMIN_TOKEN is the token `gitsynth admin init` printed.
+# ADMIN_TOKEN is the token `kry admin init` printed.
 set -euo pipefail
 
 ADMIN=${1:?usage: scripts/demo-seed.sh ADMIN_TOKEN [SERVER_URL]}
@@ -30,7 +30,7 @@ api "$ADMIN" POST /api/orgs '{"name":"acme"}' >/dev/null
 api "$ADMIN" POST /api/orgs/acme/repos '{"name":"app"}' >/dev/null
 url="$BASE/git/acme/app.git"
 
-work=$(mktemp -d "${TMPDIR:-/tmp}/gitsynth-seed.XXXXXX")
+work=$(mktemp -d "${TMPDIR:-/tmp}/krystallos-seed.XXXXXX")
 trap 'rm -rf "$work"' EXIT
 git_as "$ADMIN" -c init.defaultBranch=main clone -q "$url" "$work/app" 2>/dev/null
 cd "$work/app"

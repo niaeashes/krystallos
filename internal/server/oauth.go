@@ -10,11 +10,11 @@ import (
 	"regexp"
 	"strings"
 
-	"gitsynth/internal/app"
-	"gitsynth/internal/ident"
+	"krystallos/internal/app"
+	"krystallos/internal/ident"
 )
 
-// gitsynth is the OAuth 2.1 authorization server for its identities' MCP
+// krystallos is the OAuth 2.1 authorization server for its identities' MCP
 // endpoints, as MCP's authorization spec lays out:
 //
 //   - a 401 at an endpoint points at its Protected Resource Metadata
@@ -57,7 +57,7 @@ func (s *Server) protectedResource(w http.ResponseWriter, r *http.Request) {
 		"resource":                 s.mcpResource(id),
 		"authorization_servers":    []string{s.URL},
 		"bearer_methods_supported": []string{"header"},
-		"resource_name":            "gitsynth MCP for " + id.String(),
+		"resource_name":            "krystallos MCP for " + id.String(),
 	})
 }
 
@@ -96,7 +96,7 @@ func oauthError(w http.ResponseWriter, err error) {
 	}
 }
 
-// registerClient is Dynamic Client Registration. Fields gitsynth does not
+// registerClient is Dynamic Client Registration. Fields krystallos does not
 // use are accepted and ignored.
 func (s *Server) registerClient(w http.ResponseWriter, r *http.Request) {
 	var reg app.ClientRegistration
@@ -281,7 +281,7 @@ func (s *Server) authRequest(r *http.Request, actor app.Actor) (any, error) {
 }
 
 // approveAuth binds the client to the identity and returns where the
-// browser goes next: gitsynth's /oauth/return/{id}, which sends it on to
+// browser goes next: krystallos's /oauth/return/{id}, which sends it on to
 // the client's redirect URI with the code.
 func (s *Server) approveAuth(r *http.Request, actor app.Actor) (any, error) {
 	in, err := decode[struct {
@@ -307,7 +307,7 @@ func (s *Server) denyAuth(r *http.Request, actor app.Actor) (any, error) {
 	})), nil
 }
 
-// returnTo is the consent page's answer: a one-time gitsynth URL the
+// returnTo is the consent page's answer: a one-time krystallos URL the
 // browser goes to next, which sends it on to location.
 func (s *Server) returnTo(location string) map[string]string {
 	return map[string]string{"redirect": s.URL + "/oauth/return/" + url.PathEscape(s.App.KeepReturn(location))}
@@ -318,7 +318,7 @@ func (s *Server) returnTo(location string) map[string]string {
 // always a Location header, never script, for every kind of redirect URI:
 // a browser does not run a javascript: Location, nor go to a data: one at
 // the top level, so even a redirect URI that slipped past the checks
-// cannot run in gitsynth's origin.
+// cannot run in krystallos's origin.
 func (s *Server) oauthReturn(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Referrer-Policy", "no-referrer")

@@ -18,8 +18,8 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"gitsynth/internal/app"
-	"gitsynth/internal/ident"
+	"krystallos/internal/app"
+	"krystallos/internal/ident"
 )
 
 // MCP is the entry point for agents. Each identity has an endpoint of its
@@ -27,13 +27,13 @@ import (
 // exactly that identity: an OAuth access token whose audience is the
 // endpoint's URL, or a static token or session credential of the identity.
 //
-// An identity's endpoint keeps state. Each initialize opens a gitsynth
+// An identity's endpoint keeps state. Each initialize opens a krystallos
 // session of the identity (app.OpenMCPSession), and every later request of
 // that MCP session acts as it, so what the client does is recorded under
 // one session however often its access token is refreshed. A run sharing
 // the connection, such as a subagent, opens a child session with
 // open_session and names it in the session argument any tool takes. The
-// MCP session ends, and its gitsynth session closes, when the client ends
+// MCP session ends, and its krystallos session closes, when the client ends
 // it, when it sits idle too long, or when its grant or token stops working.
 //
 // MCP's revision 2026-07-28 drops sessions (and initialize), so these
@@ -58,7 +58,7 @@ type mcpBinding struct {
 	// anchor is what every request of the MCP session must come with: the
 	// grant its access tokens belong to, or the one credential it used.
 	anchor string
-	// actor acts as the gitsynth session the MCP session opened.
+	// actor acts as the krystallos session the MCP session opened.
 	actor  app.Actor
 	server *mcp.Server
 
@@ -94,7 +94,7 @@ func (s *Server) addBinding(b *mcpBinding) {
 	s.mcpSess.m[b.id] = b
 }
 
-// endBinding forgets an MCP session and closes its gitsynth session, once.
+// endBinding forgets an MCP session and closes its krystallos session, once.
 func (s *Server) endBinding(b *mcpBinding, reason string) {
 	b.ended.Do(func() {
 		s.mcpSess.mu.Lock()
@@ -183,7 +183,7 @@ func (s *Server) identityMCPHandler() http.Handler {
 	// A request that is neither initialize nor part of an MCP session gets
 	// a server with no tools: server/discover from a newer client fails
 	// there, which sends it to initialize.
-	unbound := mcp.NewServer(&mcp.Implementation{Name: "gitsynth", Version: "0.1.0"}, &mcp.ServerOptions{
+	unbound := mcp.NewServer(&mcp.Implementation{Name: "krystallos", Version: "0.1.0"}, &mcp.ServerOptions{
 		SupportedProtocolVersions: mcpVersions(),
 		GetSessionID:              func() string { return "" },
 	})
@@ -323,7 +323,7 @@ func (s *Server) mcpHandler() http.Handler {
 		w.Header().Set("Cache-Control", "private, no-store")
 		actor, err := s.mcpAuthenticate(r, "")
 		if err != nil {
-			w.Header().Set("WWW-Authenticate", `Bearer realm="gitsynth"`)
+			w.Header().Set("WWW-Authenticate", `Bearer realm="krystallos"`)
 			writeError(w, err)
 			return
 		}
@@ -423,16 +423,16 @@ func (s *Server) newMCPServer(sc mcpScope, cache *mcp.SchemaCache, b *mcpBinding
 	if sc.stateful {
 		opts.SupportedProtocolVersions = mcpVersions()
 		opts.GetSessionID = func() string { return b.id }
-		opts.Instructions = "gitsynth is a Git forge where every action is signed by an identity. You act as " + root.Identity +
+		opts.Instructions = "krystallos is a Git forge where every action is signed by an identity. You act as " + root.Identity +
 			", in session " + root.Session + ", which this connection opened. Work moves from idea to issue to plan to change set." +
 			" For git, get a short-lived credential with git_credential and commit with GIT_COMMITTER_EMAIL set to the committer_email it gives, or pushes are refused." +
 			" A separate run sharing this connection, such as a subagent, opens its own session with open_session and passes its id as the session argument on every call, git_credential included."
 	} else {
-		opts.Instructions = "gitsynth is a Git forge where every action is signed by an identity. You act as " + root.Identity +
+		opts.Instructions = "krystallos is a Git forge where every action is signed by an identity. You act as " + root.Identity +
 			". Work moves from idea to issue to plan to change set. Commit with GIT_COMMITTER_EMAIL set to your commit_email (see whoami), or pushes are refused. Give a separate run, such as a subagent, its own session with open_session." +
 			" This endpoint is deprecated: connect to " + s.URL + mcpPath(root.ID()) + " instead."
 	}
-	srv := mcp.NewServer(&mcp.Implementation{Name: "gitsynth", Version: "0.1.0"}, opts)
+	srv := mcp.NewServer(&mcp.Implementation{Name: "krystallos", Version: "0.1.0"}, opts)
 	if b != nil {
 		// Once initialize succeeds the MCP session exists; when it closes
 		// (the client ends it, or it sits idle), its session closes too.

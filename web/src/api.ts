@@ -15,7 +15,7 @@ export async function api<T>(method: string, path: string, body?: unknown): Prom
     method,
     credentials: 'same-origin',
     headers: {
-      'X-Gitsynth-CSRF': '1',
+      'X-Krystallos-CSRF': '1',
       ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
     },
     body: body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body),
@@ -251,7 +251,7 @@ export interface Diff {
   files: FileDiff[]
 }
 
-export interface GitsynthEvent {
+export interface KrystallosEvent {
   seq: number
   type: string
   version: number

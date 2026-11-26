@@ -49,7 +49,7 @@ func TestWebUI(t *testing.T) {
 	}
 
 	t.Run("root", func(t *testing.T) { page(t, serve(h, "GET", "/")) })
-	t.Run("deep link", func(t *testing.T) { page(t, serve(h, "GET", "/niaeashes/gitsynth/issues/1")) })
+	t.Run("deep link", func(t *testing.T) { page(t, serve(h, "GET", "/niaeashes/krystallos/issues/1")) })
 	t.Run("sign-in link", func(t *testing.T) { page(t, serve(h, "GET", "/register?token=abc")) })
 	t.Run("directory gets the page, not a listing", func(t *testing.T) {
 		page(t, serve(h, "GET", "/docs/"))
@@ -83,7 +83,7 @@ func TestWebUI(t *testing.T) {
 	})
 
 	t.Run("head", func(t *testing.T) {
-		w := serve(h, "HEAD", "/niaeashes/gitsynth")
+		w := serve(h, "HEAD", "/niaeashes/krystallos")
 		if w.Code != http.StatusOK || w.Body.Len() != 0 {
 			t.Fatalf("got %d with %d bytes", w.Code, w.Body.Len())
 		}
@@ -133,7 +133,7 @@ func TestWebUI(t *testing.T) {
 
 func TestNoWebUI(t *testing.T) {
 	h := (&Server{}).Handler()
-	for _, target := range []string{"/", "/niaeashes/gitsynth/issues/1"} {
+	for _, target := range []string{"/", "/niaeashes/krystallos/issues/1"} {
 		if w := serve(h, "GET", target); w.Code != http.StatusNotFound {
 			t.Errorf("GET %s: got %d, want 404", target, w.Code)
 		}

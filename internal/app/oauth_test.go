@@ -69,8 +69,8 @@ func TestCheckRedirectURI(t *testing.T) {
 		"vbscript:msgbox(1)", "livescript:x", "mocha:x",
 		"data:text/html,<script>alert(1)</script>", "data://x/y",
 		"file:///etc/passwd", "file://host/share",
-		"blob:https://gitsynth.example.com/0f1e", "filesystem:https://gitsynth.example.com/temporary/x",
-		"about:blank", "about://blank/", "view-source:https://gitsynth.example.com/",
+		"blob:https://krystallos.example.com/0f1e", "filesystem:https://krystallos.example.com/temporary/x",
+		"about:blank", "about://blank/", "view-source:https://krystallos.example.com/",
 		"ws://localhost/cb", "wss://example.com/cb", "ftp://example.com/cb",
 		"mhtml:https://example.com/x", "jar:https://example.com/x.jar!/y",
 		"chrome://settings/", "chrome-extension://abc/cb", "moz-extension://abc/cb", "safari-web-extension://abc/cb",
@@ -142,7 +142,7 @@ func TestRedirectKind(t *testing.T) {
 // and not after it expires.
 func TestReturnOnce(t *testing.T) {
 	a := &App{}
-	loc := "claude://claude.ai/mcp-auth-callback/sdk?code=gsa_x&iss=https%3A%2F%2Fgit.example.com&state=s"
+	loc := "claude://claude.ai/mcp-auth-callback/sdk?code=kra_x&iss=https%3A%2F%2Fgit.example.com&state=s"
 	id := a.KeepReturn(loc)
 	if !strings.HasPrefix(id, "ort_") || len(id) < 20 {
 		t.Fatalf("unexpected return ID %q", id)

@@ -169,7 +169,7 @@ function OrgServices({ org }: { org: string }) {
       queryClient.invalidateQueries({ queryKey: ['/api/services'] })
     },
   })
-  const all = (services.data ?? []).filter((s) => s.id !== 'service:gitsynth')
+  const all = (services.data ?? []).filter((s) => s.id !== 'service:krystallos')
   const installed = all.filter((s) => s.orgs.includes(org))
   const available = all.filter((s) => !s.orgs.includes(org))
   return (

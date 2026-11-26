@@ -181,7 +181,7 @@ func (a *App) metadataClient(ctx context.Context, clientID string) (OAuthClient,
 	return c, nil
 }
 
-// clientMetadata is the part of a metadata document gitsynth reads.
+// clientMetadata is the part of a metadata document krystallos reads.
 type clientMetadata struct {
 	ClientID                string   `json:"client_id"`
 	ClientName              string   `json:"client_name"`
@@ -199,7 +199,7 @@ func (f *metadataFetcher) get(ctx context.Context, clientID string) (OAuthClient
 		return OAuthClient{}, err
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "gitsynth")
+	req.Header.Set("User-Agent", "krystallos")
 	resp, err := f.client.Do(req)
 	if err != nil {
 		return OAuthClient{}, err

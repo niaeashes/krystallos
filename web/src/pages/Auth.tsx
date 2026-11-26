@@ -20,7 +20,7 @@ export function AuthCard({ title, children }: { title: string; children: ReactNo
   return (
     <div className="auth">
       <div className="auth-card">
-        <div className="brand auth-brand">gitsynth</div>
+        <div className="brand auth-brand">krystallos</div>
         <h1>{title}</h1>
         {children}
       </div>
@@ -69,7 +69,7 @@ export function LoginPage() {
       </button>
       <ErrorBox error={error} />
       <p className="muted small">
-        No passkey yet? An admin can give you a registration link with <code>gitsynth admin passkey-link</code>.
+        No passkey yet? An admin can give you a registration link with <code>kry admin passkey-link</code>.
       </p>
     </AuthCard>
   )
@@ -105,7 +105,7 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthCard title={invited ? 'Join gitsynth' : 'Create your passkey'}>
+    <AuthCard title={invited ? 'Join krystallos' : 'Create your passkey'}>
       {invited ? (
         <>
           <p className="muted">
