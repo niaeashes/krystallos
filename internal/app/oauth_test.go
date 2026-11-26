@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -40,8 +41,54 @@ func TestCheckMetadataURL(t *testing.T) {
 	}
 }
 
+// TestCheckRedirectURI: https, http on loopback, and a native app's
+// private-use scheme are accepted; http elsewhere, and every scheme the
+// browser handles itself, are not.
+func TestCheckRedirectURI(t *testing.T) {
+	for _, ok := range []string{
+		"https://app.example.com/cb",
+		"https://app.example.com/cb?x=1",
+		"http://localhost/callback",
+		"http://127.0.0.1:8080/callback",
+		"http://[::1]:8080/callback",
+		"claude://claude.ai/mcp-auth-callback/sdk",
+		"com.example.app:/oauth2redirect/example-provider",
+		"com.example.app:///callback",
+		"my-app+dev.1://cb/x",
+	} {
+		if err := checkRedirectURI(ok); err != nil {
+			t.Errorf("checkRedirectURI(%q) = %v, want it accepted", ok, err)
+		}
+	}
+	for _, bad := range []string{
+		// http off loopback, and https without a host.
+		"http://evil.example/cb", "http://localhost.evil.example/cb", "http:/cb", "https:/cb", "https:cb",
+		// Schemes the browser handles itself.
+		"javascript:alert(1)", "javascript://claude.ai/%0aalert(1)", "JavaScript://x/%0aalert(1)",
+		"vbscript:msgbox(1)", "livescript:x", "mocha:x",
+		"data:text/html,<script>alert(1)</script>", "data://x/y",
+		"file:///etc/passwd", "file://host/share",
+		"blob:https://gitsynth.example.com/0f1e", "filesystem:https://gitsynth.example.com/temporary/x",
+		"about:blank", "about://blank/", "view-source:https://gitsynth.example.com/",
+		"ws://localhost/cb", "wss://example.com/cb", "ftp://example.com/cb",
+		"mhtml:https://example.com/x", "jar:https://example.com/x.jar!/y",
+		"chrome://settings/", "chrome-extension://abc/cb", "moz-extension://abc/cb", "safari-web-extension://abc/cb",
+		"resource://gre/x", "intent://scan/#Intent;scheme=zxing;end", "android-app://com.example/https/x",
+		// Not a URI an app can get a query on, or not a URI at all.
+		"com.example.app:callback", "claude:", "1app://cb/x", "-app://cb/x", "://cb/x", "/callback", "",
+		" claude://claude.ai/cb", "java\tscript:alert(1)", "claude://claude.ai/cb\n",
+		// A fragment or a user, in any scheme.
+		"claude://claude.ai/cb#x", "claude://claude.ai/cb#", "claude://user@claude.ai/cb", "https://u:p@app.example.com/cb",
+	} {
+		if err := checkRedirectURI(bad); err == nil {
+			t.Errorf("checkRedirectURI(%q) accepted it", bad)
+		}
+	}
+}
+
 func TestRedirectAllowed(t *testing.T) {
-	reg := []string{"http://localhost/callback", "http://127.0.0.1/callback", "https://app.example.com/cb"}
+	reg := []string{"http://localhost/callback", "http://127.0.0.1/callback", "https://app.example.com/cb",
+		"claude://claude.ai/mcp-auth-callback/sdk", "com.example.app:/callback"}
 	for uri, want := range map[string]bool{
 		"http://localhost:51234/callback": true,
 		"http://127.0.0.1:8080/callback":  true,
@@ -52,9 +99,40 @@ func TestRedirectAllowed(t *testing.T) {
 		"https://app.example.com:444/cb":  false,
 		"https://evil.example.com/cb":     false,
 		"http://app.example.com/cb":       false,
+		// A private-use scheme matches only exactly: no other port, path,
+		// query, host or scheme.
+		"claude://claude.ai/mcp-auth-callback/sdk":      true,
+		"claude://claude.ai:1234/mcp-auth-callback/sdk": false,
+		"claude://claude.ai/mcp-auth-callback/sdk/":     false,
+		"claude://claude.ai/mcp-auth-callback/other":    false,
+		"claude://claude.ai/mcp-auth-callback/sdk?x=1":  false,
+		"claude://evil.example/mcp-auth-callback/sdk":   false,
+		"Claude://claude.ai/mcp-auth-callback/sdk":      false,
+		"claude-dev://claude.ai/mcp-auth-callback/sdk":  false,
+		"https://claude.ai/mcp-auth-callback/sdk":       false,
+		"javascript://claude.ai/mcp-auth-callback/sdk":  false,
+		"com.example.app:/callback":                     true,
+		"com.example.app:///callback":                   false,
+		"com.example.app://x/callback":                  false,
 	} {
 		if got := redirectAllowed(reg, uri); got != want {
 			t.Errorf("redirectAllowed(%q) = %v, want %v", uri, got, want)
+		}
+	}
+}
+
+// TestRedirectKind is what the consent page says about where the answer
+// goes.
+func TestRedirectKind(t *testing.T) {
+	for raw, want := range map[string]string{
+		"https://app.example.com/cb":               RedirectWeb,
+		"http://127.0.0.1:54321/callback":          RedirectLoopback,
+		"claude://claude.ai/mcp-auth-callback/sdk": RedirectApp,
+		"com.example.app:/callback":                RedirectApp,
+	} {
+		u, _ := url.Parse(raw)
+		if got, err := redirectKind(u); got != want || err != nil {
+			t.Errorf("redirectKind(%q) = %q, %v; want %q", raw, got, err, want)
 		}
 	}
 }

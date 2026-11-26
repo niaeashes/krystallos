@@ -204,21 +204,90 @@ func contains(list []string, s string) bool {
 	return false
 }
 
-// checkRedirectURI accepts an https URL, or an http URL on a loopback
-// address, which is how a native app such as a CLI receives the code.
+// Redirect kinds: where the browser takes the answer.
+const (
+	// RedirectWeb is an https URL: a site.
+	RedirectWeb = "web"
+	// RedirectLoopback is an http URL on a loopback address, where a native
+	// app such as a CLI listens (RFC 8252 §7.3).
+	RedirectLoopback = "loopback"
+	// RedirectApp is a private-use URI scheme, such as claude:, which the
+	// operating system hands to whichever app registered it (RFC 8252 §7.1).
+	RedirectApp = "app"
+)
+
+var schemeRe = regexp.MustCompile(`^[a-z][a-z0-9+.-]*$`)
+
+// browserSchemes are the schemes a browser handles itself instead of handing
+// them to an app: going to one runs script, shows a local file or a browser
+// page, or opens another kind of connection. None is a place a native app
+// receives a code, so a redirect URI never uses one. The browser's
+// handling of a few (javascript:, data:) is how a redirect becomes script
+// in gitsynth's origin; the rest are refused for the same reason, that
+// they act inside the browser.
+var browserSchemes = map[string]bool{
+	// Script, and content the browser renders itself.
+	"javascript": true, "vbscript": true, "livescript": true, "mocha": true,
+	"data": true, "blob": true, "filesystem": true, "view-source": true,
+	"about": true, "file": true, "mhtml": true, "jar": true,
+	// Other connections the browser makes itself.
+	"ws": true, "wss": true, "ftp": true,
+	// The browser's own pages, and its ways of opening apps by name.
+	"chrome": true, "chrome-untrusted": true, "chrome-search": true, "edge": true,
+	"opera": true, "brave": true, "vivaldi": true, "resource": true, "moz-icon": true,
+	"intent": true, "android-app": true,
+}
+
+// browserScheme reports whether a (lowercase) scheme is one the browser
+// handles itself, extensions' schemes (chrome-extension:, moz-extension:)
+// included.
+func browserScheme(scheme string) bool {
+	return browserSchemes[scheme] || strings.HasSuffix(scheme, "-extension")
+}
+
+// redirectKind says which kind of redirect URI u is, or why it is not one:
+// an https URL, an http URL on a loopback address, or a private-use URI
+// scheme for a native app. A private-use one may name a host
+// (claude://claude.ai/callback) or not (com.example.app:/callback, the form
+// RFC 8252 §7.1 itself gives): for the operating system only the scheme
+// counts, so the host decides nothing either way. It must be hierarchical,
+// with a path starting with /, so that the code is added as a query.
+func redirectKind(u *url.URL) (string, error) {
+	switch {
+	case u.Scheme == "https":
+		if u.Host == "" {
+			return "", errors.New("an https redirect URI needs a host")
+		}
+		return RedirectWeb, nil
+	case u.Scheme == "http":
+		if !isLoopbackHost(u.Hostname()) {
+			return "", errors.New("an http redirect URI must be on localhost; anywhere else use https")
+		}
+		return RedirectLoopback, nil
+	case !schemeRe.MatchString(u.Scheme):
+		return "", errors.New("a redirect URI needs a scheme")
+	case browserScheme(u.Scheme):
+		return "", fmt.Errorf("%s: is handled by the browser itself, not by an app", u.Scheme)
+	case u.Opaque != "" || !strings.HasPrefix(u.Path, "/"):
+		return "", fmt.Errorf("an app's redirect URI must have a path, as in %s:/callback or %s://host/callback", u.Scheme, u.Scheme)
+	}
+	return RedirectApp, nil
+}
+
+// checkRedirectURI accepts an https URL; an http URL on a loopback address,
+// which is how a CLI receives the code; or a URI with a private-use scheme,
+// which is how a desktop or mobile app does. PKCE (S256, always required)
+// is what keeps a code that reaches the wrong app useless.
 func checkRedirectURI(raw string) error {
 	if len(raw) > maxOAuthURI {
 		return fmt.Errorf("redirect URI is longer than %d bytes", maxOAuthURI)
 	}
 	u, err := url.Parse(raw)
-	if err != nil || u.Host == "" || u.Fragment != "" || u.User != nil {
-		return fmt.Errorf("invalid redirect URI %q", raw)
+	if err != nil || u.Fragment != "" || strings.Contains(raw, "#") || u.User != nil {
+		return fmt.Errorf("invalid redirect URI %q: it must parse, without a fragment or a user", raw)
 	}
-	switch {
-	case u.Scheme == "https":
-	case u.Scheme == "http" && isLoopbackHost(u.Hostname()):
-	default:
-		return fmt.Errorf("redirect URI %q must be https, or http on localhost", raw)
+	if _, err := redirectKind(u); err != nil {
+		return fmt.Errorf("redirect URI %q: %v", raw, err)
 	}
 	return nil
 }
@@ -231,9 +300,10 @@ func isLoopbackHost(h string) bool {
 	return ip != nil && ip.IsLoopback()
 }
 
-// redirectAllowed reports whether uri is one of the client's redirect URIs.
-// A loopback one matches on any port (RFC 8252 §7.3): a native app listens
-// on whatever port is free when it asks.
+// redirectAllowed reports whether uri is one of the client's redirect URIs,
+// exactly. Only a loopback one may differ, in its port alone (RFC 8252
+// §7.3): a native app listens on whatever port is free when it asks. An
+// https or private-use one matches only exactly.
 func redirectAllowed(registered []string, uri string) bool {
 	got, err := url.Parse(uri)
 	if err != nil || checkRedirectURI(uri) != nil {
@@ -244,7 +314,7 @@ func redirectAllowed(registered []string, uri string) bool {
 			return true
 		}
 		want, err := url.Parse(r)
-		if err != nil || want.Scheme != "http" || got.Scheme != "http" || !isLoopbackHost(want.Hostname()) {
+		if err != nil || want.Scheme != "http" || got.Scheme != "http" || !isLoopbackHost(want.Hostname()) || !isLoopbackHost(got.Hostname()) {
 			continue
 		}
 		if strings.EqualFold(want.Hostname(), got.Hostname()) && want.EscapedPath() == got.EscapedPath() && want.RawQuery == got.RawQuery {
