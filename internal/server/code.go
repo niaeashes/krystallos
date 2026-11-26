@@ -13,6 +13,16 @@ func (s *Server) cloneURL(repo app.Repo) string {
 	return s.URL + "/git/" + repo.FullName + ".git"
 }
 
+// withCloneURLs adds a repository's clone URLs to m: over HTTPS always,
+// and over SSH when the server serves it.
+func (s *Server) withCloneURLs(m map[string]any, repo app.Repo) map[string]any {
+	m["clone_url"] = s.cloneURL(repo)
+	if u := s.sshCloneURL(repo); u != "" {
+		m["ssh_clone_url"] = u
+	}
+	return m
+}
+
 func (s *Server) getRepo(r *http.Request, actor app.Actor) (any, error) {
 	repo, err := s.readable(r, actor)
 	if err != nil {
@@ -31,10 +41,10 @@ func (s *Server) getRepo(r *http.Request, actor app.Actor) (any, error) {
 		return nil, err
 	}
 	noteRead(r, "code.read", map[string]any{"refs": refs})
-	return map[string]any{
-		"repo": repo, "refs": refs, "clone_url": s.cloneURL(repo),
+	return s.withCloneURLs(map[string]any{
+		"repo": repo, "refs": refs,
 		"permissions": map[string]bool{"push": canPush, "admin": canAdmin},
-	}, nil
+	}, repo), nil
 }
 
 func (s *Server) tree(r *http.Request, actor app.Actor) (any, error) {

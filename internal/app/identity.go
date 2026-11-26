@@ -632,14 +632,23 @@ func (a *App) AuthenticateFor(ctx context.Context, token, audience string) (Acto
 			return Actor{}, err
 		}
 	}
-	for _, id := range act.ID().Chain() {
-		var disabled bool
-		if err := db.QueryRowContext(ctx, `SELECT disabled FROM identities WHERE id = ?`, id.String()).Scan(&disabled); err != nil {
-			return Actor{}, err
-		}
-		if disabled {
-			return Actor{}, errf(http.StatusUnauthorized, "identity %s is disabled", id)
-		}
+	if err := chainEnabled(ctx, db, act.ID()); err != nil {
+		return Actor{}, err
 	}
 	return act, nil
+}
+
+// chainEnabled refuses an identity that is disabled, or derived from one
+// that is: no credential works there.
+func chainEnabled(ctx context.Context, q querier, target ident.ID) error {
+	for _, id := range target.Chain() {
+		var disabled bool
+		if err := q.QueryRowContext(ctx, `SELECT disabled FROM identities WHERE id = ?`, id.String()).Scan(&disabled); err != nil {
+			return err
+		}
+		if disabled {
+			return errf(http.StatusUnauthorized, "identity %s is disabled", id)
+		}
+	}
+	return nil
 }

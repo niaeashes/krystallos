@@ -130,3 +130,24 @@ func passkeyProblem(u string) string {
 	}
 	return ""
 }
+
+// sshAddress is where SSH clients connect, for SSH clone URLs: --ssh-host
+// if given, else the public URL's host on the port SSH listens on (left
+// out when it is 22).
+func sshAddress(given, publicURL string, listening net.Addr) (string, error) {
+	if given != "" {
+		if strings.ContainsAny(given, "/@ ") {
+			return "", fmt.Errorf("--ssh-host %s: give host[:port], such as git.example.com or git.example.com:2222", given)
+		}
+		return given, nil
+	}
+	_, port, err := net.SplitHostPort(listening.String())
+	if err != nil {
+		return "", err
+	}
+	host := hostName(publicURL)
+	if port == "22" {
+		return host, nil
+	}
+	return net.JoinHostPort(host, port), nil
+}

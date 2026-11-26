@@ -185,16 +185,19 @@ func (a *App) Services(ctx context.Context) ([]ServiceInfo, error) {
 }
 
 // CredentialInfo describes a credential without its secret. Kind is
-// "token", "browser" or "session"; a session's credential carries the
-// session's ID and label.
+// "token", "browser", "session" or "ssh_key"; a session's credential
+// carries the session's ID and label, and an SSH key its name as the
+// label, with its type and fingerprint.
 type CredentialInfo struct {
-	ID        string `json:"id"`
-	Identity  string `json:"identity"`
-	Kind      string `json:"kind"`
-	Session   string `json:"session,omitempty"`
-	Label     string `json:"label,omitempty"`
-	ExpiresAt string `json:"expires_at,omitempty"`
-	Revoked   bool   `json:"revoked"`
+	ID          string `json:"id"`
+	Identity    string `json:"identity"`
+	Kind        string `json:"kind"`
+	Session     string `json:"session,omitempty"`
+	Label       string `json:"label,omitempty"`
+	ExpiresAt   string `json:"expires_at,omitempty"`
+	Revoked     bool   `json:"revoked"`
+	KeyType     string `json:"key_type,omitempty"`
+	Fingerprint string `json:"fingerprint,omitempty"`
 }
 
 // MyCredentials lists the credentials the actor controls: those of its own
@@ -202,8 +205,11 @@ type CredentialInfo struct {
 func (a *App) MyCredentials(ctx context.Context, actor Actor) ([]CredentialInfo, error) {
 	// OAuth's credentials are shown as the grants they belong to.
 	rows, err := a.Store.DB().QueryContext(ctx,
-		`SELECT c.id, c.identity, c.kind, c.session, COALESCE(s.label, ''), c.expires_at, c.revoked
-		 FROM credentials c LEFT JOIN sessions s ON c.kind = 'session' AND s.id = c.session
+		`SELECT c.id, c.identity, c.kind, c.session, COALESCE(s.label, k.name, ''), c.expires_at, c.revoked,
+		        COALESCE(k.type, ''), COALESCE(k.fingerprint, '')
+		 FROM credentials c
+		 LEFT JOIN sessions s ON c.kind = 'session' AND s.id = c.session
+		 LEFT JOIN ssh_keys k ON c.kind = 'ssh_key' AND k.credential = c.id
 		 WHERE c.kind NOT LIKE 'oauth\_%' ESCAPE '\'
 		 ORDER BY c.rowid DESC`)
 	if err != nil {
@@ -212,7 +218,7 @@ func (a *App) MyCredentials(ctx context.Context, actor Actor) ([]CredentialInfo,
 	var all []CredentialInfo
 	for rows.Next() {
 		var c CredentialInfo
-		if err := rows.Scan(&c.ID, &c.Identity, &c.Kind, &c.Session, &c.Label, &c.ExpiresAt, &c.Revoked); err != nil {
+		if err := rows.Scan(&c.ID, &c.Identity, &c.Kind, &c.Session, &c.Label, &c.ExpiresAt, &c.Revoked, &c.KeyType, &c.Fingerprint); err != nil {
 			rows.Close()
 			return nil, err
 		}

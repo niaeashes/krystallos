@@ -503,7 +503,7 @@ func (s *Server) newMCPServer(sc mcpScope, cache *mcp.SchemaCache, b *mcpBinding
 		}
 		out := []map[string]any{}
 		for _, rp := range repos {
-			out = append(out, map[string]any{"repo": rp, "clone_url": s.cloneURL(rp)})
+			out = append(out, s.withCloneURLs(map[string]any{"repo": rp}, rp))
 		}
 		read(actor, "list_repos", "", map[string]string{"org": in.Org})
 		return map[string]any{"repos": out}, nil
@@ -518,7 +518,7 @@ func (s *Server) newMCPServer(sc mcpScope, cache *mcp.SchemaCache, b *mcpBinding
 		if err != nil {
 			return nil, err
 		}
-		return map[string]any{"repo": rp, "clone_url": s.cloneURL(rp)}, nil
+		return s.withCloneURLs(map[string]any{"repo": rp}, rp), nil
 	})
 
 	tool(a, sc, srv, "list_issues", "Issues of a repository.", func(ctx context.Context, actor app.Actor, in repoArg) (any, error) {

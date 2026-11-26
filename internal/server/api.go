@@ -178,6 +178,20 @@ func (s *Server) issueToken(r *http.Request, actor app.Actor) (any, error) {
 	return s.App.IssueToken(r.Context(), actor, in.Identity, time.Duration(in.TTLHours*float64(time.Hour)))
 }
 
+// addSSHKey registers an SSH key for an identity. It is revoked like a
+// token, through /api/tokens/{id}/revoke.
+func (s *Server) addSSHKey(r *http.Request, actor app.Actor) (any, error) {
+	in, err := decode[struct {
+		Identity  string `json:"identity"`
+		PublicKey string `json:"public_key"`
+		Name      string `json:"name"`
+	}](r)
+	if err != nil {
+		return nil, err
+	}
+	return s.App.AddSSHKey(r.Context(), actor, in.Identity, in.PublicKey, in.Name)
+}
+
 func (s *Server) createOrg(r *http.Request, actor app.Actor) (any, error) {
 	in, err := decode[struct {
 		Name string `json:"name"`
@@ -212,7 +226,7 @@ func (s *Server) createRepo(r *http.Request, actor app.Actor) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"repo": repo, "clone_url": s.cloneURL(repo)}, nil
+	return s.withCloneURLs(map[string]any{"repo": repo}, repo), nil
 }
 
 func (s *Server) requireOrg(r *http.Request, actor app.Actor) error {

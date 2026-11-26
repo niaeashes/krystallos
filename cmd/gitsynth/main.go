@@ -26,6 +26,8 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/crypto/ssh"
+
 	"gitsynth/internal/accesslog"
 	"gitsynth/internal/app"
 	"gitsynth/internal/server"
@@ -34,6 +36,7 @@ import (
 
 const usage = `usage:
   gitsynth serve [--data DIR] [--listen ADDR] [--url URL] [--origin URLS] [--git BIN] [--web off|DIR] [--max-git N]
+                 [--ssh ADDR [--ssh-host HOST[:PORT]]]
   gitsynth admin init       --data DIR --user NAME [--host HOST] [--url URL]   set the host and create the first (admin) user
   gitsynth admin add-user   --data DIR --user NAME [--url URL]
   gitsynth admin invite     --data DIR [--org ORG --set SET] [--url URL]  one-time link for someone to join
@@ -56,6 +59,11 @@ server at http://localhost:5173. serve's web UI is the one built in, unless
 --web says otherwise. --max-git caps the git processes serving clones,
 fetches and pushes at once (default twice the CPUs, 0 for no limit); a
 client beyond it waits for one to finish.
+
+--ssh serves git over SSH on ADDR as well, such as :22, for keys registered
+to identities; its host key is made in the data directory on first use.
+--ssh-host is where SSH clients connect, for SSH clone URLs; it defaults to
+the --url host, on the --ssh port.
 `
 
 func main() {
@@ -105,7 +113,9 @@ func cmdServe(args []string) error {
 	urlFlag := fs.String("url", "", "public URL, scheme://host[:port]: where people open the web UI and git and MCP clients connect (default https://HOST, or http://localhost:PORT for a localhost server)")
 	origin := fs.String("origin", "", "comma-separated other origins the web UI is opened from (default "+devOrigin+" for a localhost server)")
 	webSource := fs.String("web", "", "web UI to serve: empty for the one built into the binary, off for none, or a directory holding a web build")
-	maxGit := fs.Int("max-git", 2*runtime.NumCPU(), "git processes that may serve clones, fetches and pushes at once; 0 for no limit")
+	maxGit := fs.Int("max-git", 2*runtime.NumCPU(), "git processes that may serve clones, fetches and pushes at once, over HTTP and SSH together; 0 for no limit")
+	sshListen := fs.String("ssh", "", "address to serve git over SSH on, such as :22; no SSH when empty")
+	sshHost := fs.String("ssh-host", "", "where SSH clients connect, host[:port], for SSH clone URLs (default the --url host, on the --ssh port)")
 	fs.Parse(args)
 	if *maxGit < 0 {
 		return fmt.Errorf("--max-git %d: give 0 for no limit, or a positive number", *maxGit)
@@ -199,6 +209,38 @@ func cmdServe(args []string) error {
 
 	if err := a.Reconcile(ctx); err != nil {
 		return fmt.Errorf("reconcile: %w", err)
+	}
+
+	if *sshListen != "" {
+		sln, err := net.Listen("tcp", *sshListen)
+		if err != nil {
+			return fmt.Errorf("--ssh %s: %w", *sshListen, err)
+		}
+		hostKey, err := server.HostKey(a.DataDir())
+		if err != nil {
+			sln.Close()
+			return err
+		}
+		if srv.SSH, err = sshAddress(*sshHost, addr.URL, sln.Addr()); err != nil {
+			sln.Close()
+			return err
+		}
+		sshDone := make(chan struct{})
+		go func() {
+			defer close(sshDone)
+			if err := srv.ServeSSH(ctx, sln, hostKey); err != nil {
+				slog.Error("ssh server stopped", "err", err)
+				stop()
+			}
+		}()
+		// Whichever way serve returns, SSH commands end before the
+		// database closes.
+		defer func() {
+			stop()
+			<-sshDone
+		}()
+		slog.Info("gitsynth serving git over ssh", "addr", sln.Addr().String(), "ssh", srv.SSH,
+			"host_key", ssh.FingerprintSHA256(hostKey.PublicKey()))
 	}
 
 	ln, err := net.Listen("tcp", *listen)

@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"log/slog"
@@ -51,6 +52,17 @@ const gitRetryAfter = "10"
 // returns false. The caller calls release once git has exited. It must run
 // before anything is written, so the 503 can still be sent.
 func (s *Server) acquireGit(w http.ResponseWriter, r *http.Request) (release func(), ok bool) {
+	release, ok = s.gitSlot(r.Context())
+	if !ok {
+		w.Header().Set("Retry-After", gitRetryAfter)
+		http.Error(w, "the server is busy serving other git clients; try again shortly", http.StatusServiceUnavailable)
+	}
+	return release, ok
+}
+
+// gitSlot takes one of MaxGit slots, waiting while all are taken, for git
+// served over HTTP or SSH alike. It returns false if ctx ends first.
+func (s *Server) gitSlot(ctx context.Context) (release func(), ok bool) {
 	s.gitOnce.Do(func() {
 		if s.MaxGit > 0 {
 			s.gitSlots = make(chan struct{}, s.MaxGit)
@@ -62,9 +74,7 @@ func (s *Server) acquireGit(w http.ResponseWriter, r *http.Request) (release fun
 	select {
 	case s.gitSlots <- struct{}{}:
 		return func() { <-s.gitSlots }, true
-	case <-r.Context().Done():
-		w.Header().Set("Retry-After", gitRetryAfter)
-		http.Error(w, "the server is busy serving other git clients; try again shortly", http.StatusServiceUnavailable)
+	case <-ctx.Done():
 		return nil, false
 	}
 }

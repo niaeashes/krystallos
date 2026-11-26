@@ -60,9 +60,12 @@ CREATE TABLE IF NOT EXISTS service_installs (
 
 -- kind is 'token' (a standing token), 'browser' (a signed-in browser),
 -- 'session' (a credential bound to a session, whose session column holds
--- the session's id), or one of OAuth's: 'oauth_grant' (a grant's own),
+-- the session's id), 'ssh_key' (an SSH key, whose public half is in
+-- ssh_keys), or one of OAuth's: 'oauth_grant' (a grant's own),
 -- 'oauth_access' and 'oauth_refresh'. On token and browser, session is a
--- free-form label from before sessions were records.
+-- free-form label from before sessions were records. An SSH key has no
+-- secret here: its hash is "ssh_key:" and its own id, which no token
+-- hashes to.
 CREATE TABLE IF NOT EXISTS credentials (
 	id         TEXT PRIMARY KEY,
 	identity   TEXT NOT NULL,
@@ -72,6 +75,17 @@ CREATE TABLE IF NOT EXISTS credentials (
 	revoked    INTEGER NOT NULL DEFAULT 0,
 	kind       TEXT NOT NULL DEFAULT 'token'
 );
+
+-- The public half of each SSH key credential. A fingerprint (SHA256, as
+-- ssh-keygen prints it) is held by at most one unrevoked key on the server.
+CREATE TABLE IF NOT EXISTS ssh_keys (
+	credential  TEXT PRIMARY KEY,
+	fingerprint TEXT NOT NULL,
+	type        TEXT NOT NULL,
+	public_key  TEXT NOT NULL,
+	name        TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS ssh_keys_fingerprint ON ssh_keys (fingerprint);
 
 -- A session is one run of an identity. parent is the session it was opened
 -- from ('' when a standing token or a browser opened it), opened_by the
