@@ -85,6 +85,8 @@ export interface RepoInfo {
   repo: Repo
   refs: Ref[]
   clone_url: string
+  // Present when the server serves git over SSH.
+  ssh_clone_url?: string
   permissions: { push: boolean; admin: boolean }
 }
 
@@ -298,11 +300,24 @@ export interface LinkInfo {
 export interface CredentialInfo {
   id: string
   identity: string
-  kind: 'token' | 'browser' | 'session'
+  kind: 'token' | 'browser' | 'session' | 'ssh_key'
   session?: string
+  // A session's label, or an SSH key's name.
   label?: string
   expires_at?: string
   revoked: boolean
+  key_type?: string
+  fingerprint?: string
+}
+
+export interface SSHKey {
+  id: string
+  identity: string
+  name?: string
+  type: string
+  fingerprint: string
+  public_key: string
+  committer_email: string
 }
 
 export interface IssuedToken {
