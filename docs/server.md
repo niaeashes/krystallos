@@ -8,6 +8,7 @@ One Linux VM runs gitsynth, with [Caddy](https://caddyserver.com) in front for T
 - git 2.38 or later.
 - A domain whose A record (and AAAA, with IPv6) points at the VM.
 - TCP 80 and 443 open to the VM, in the provider's firewall too. Caddy uses 80 to get the certificate and to redirect to HTTPS.
+- For git over SSH (optional), TCP 22 or another port open to the VM. See [Git over SSH](#git-over-ssh).
 
 ## Installing
 
@@ -39,11 +40,46 @@ sudo install -m 644 deploy/Caddyfile /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
 
-Open the passkey link and create a passkey. To clone and push over HTTPS, issue a token on the Identities page. A push is refused unless each new commit's committer is you: commit with `GIT_COMMITTER_EMAIL=user:alice@gitsynth.example.com`, or register your own address on the Identities page.
+Open the passkey link and create a passkey. To clone and push over HTTPS, issue a token on the Identities page; for SSH, see below. A push is refused unless each new commit's committer is you: commit with `GIT_COMMITTER_EMAIL=user:alice@gitsynth.example.com`, or register your own address on the Identities page.
 
 ## The public URL
 
 Clone URLs, the links `admin` prints, and passkeys all start from the public URL. It is `https://HOST` for the host given to `init`, and the server never takes it from a request's `Host` or `X-Forwarded-*` headers. When people reach the server somewhere else, such as another port, give `serve` and `admin` the same `--url`.
+
+## Git over SSH
+
+`serve --ssh ADDR` serves git over SSH as well, to keys registered on the Identities page. It runs `git-upload-pack` and `git-receive-pack` and nothing else: no shell, no forwarding. Caddy does not carry SSH, and neither does an HTTP proxy such as Cloudflare's, so the name clients connect to must point at the VM itself.
+
+Port 22 is usually taken by the VM's own sshd. Pick one:
+
+- **gitsynth on 22**, for clone URLs like `git@gitsynth.example.com:acme/app.git`. Move the VM's sshd out of the way first, and make sure you can still reach the VM another way (a Tailscale address, the provider's console). With Tailscale SSH, tailscaled answers port 22 on the tailnet address itself, so the OS sshd can stop listening on the public address. If something else keeps port 22 on another address, give `--ssh` the public address alone, such as `--ssh 203.0.113.10:22`.
+- **gitsynth on another port**, such as `--ssh :2222`, for clone URLs like `ssh://git@gitsynth.example.com:2222/acme/app.git`. sshd stays as it is.
+
+Add the flag in a drop-in, so upgrades of the unit file keep it. A port below 1024 needs `CAP_NET_BIND_SERVICE`; leave those two lines out for a higher port:
+
+```bash
+sudo systemctl edit gitsynth
+```
+
+```ini
+[Service]
+ExecStart=
+ExecStart=/usr/local/bin/gitsynth serve --data /var/lib/gitsynth --listen 127.0.0.1:3000 --ssh :22
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+```
+
+Then `sudo systemctl restart gitsynth`, and open the port in the provider's firewall.
+
+The host key is made on first start, as `ssh_host_ed25519_key` in the data directory, so backups and moves keep it. The server logs its fingerprint when it starts; give it to people to check against what ssh shows on their first connection:
+
+```bash
+sudo journalctl -u gitsynth | grep host_key
+```
+
+Clone URLs use the `--url` host on the `--ssh` port (left out when it is 22). When clients reach SSH under another name or port, such as through a port mapping, say so with `--ssh-host`, such as `--ssh-host git.example.com:2222`.
+
+To check a key, `ssh -T git@gitsynth.example.com` answers with the identity it belongs to. [docs/agents.md](agents.md#git-over-ssh) says how to clone for each identity.
 
 ## Admin commands
 

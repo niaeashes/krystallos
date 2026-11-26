@@ -63,13 +63,13 @@ data/
 **Git**
 
 - Change sets are received as pushes to `refs/for/...` through the proc-receive hook (Git 2.29 and later). Creating and updating change sets, and assigning change IDs, happen there (the same mechanism as Gitea's AGit flow).
-- The SSH server is built in, so that deciding an identity from a key and handling FIDO keys stay under our control.
+- The SSH server is built in, so that deciding an identity from a key and handling FIDO keys stay under our control. It runs `git-upload-pack` and `git-receive-pack` only, with the same permission checks, push checks and records as HTTP. Over SSH a fetch is one stream, so each protocol v2 request is read up to its flush packet and recorded before git sees it.
 - Git protocol v2 is required. The commits a client requests are read out of each `git upload-pack` request and recorded, so the parsing is kept simple. Clients from Git 2.26 on use v2 by default.
 
 **Authentication**
 
-- A person's standard identity: passkeys on the web, FIDO keys over SSH.
-- Agent identities: tokens and SSH keys issued from a screen the person signed in to with a passkey.
+- A person's standard identity: passkeys on the web; over SSH, keys the person registered while signed in. Ordinary keys and FIDO keys are both accepted. A FIDO key's signature must carry the user-presence flag, which Go's SSH library checks by default, as OpenSSH does.
+- Agent identities: tokens and SSH keys issued from a screen the person signed in to with a passkey. An SSH key is a credential like a standing token: it belongs to one identity and no session, and revoking or disabling stops it.
 - Commit signing: SSH signatures (Git 2.34 and later), so key management is unified on SSH keys.
 - A passkey is created through a one-time link from the admin CLI. The same CLI can issue a one-time sign-in link, as the way back in for someone who lost their passkey; only someone with shell access to the server can do that.
 - The browser holds a cookie session bound to the person's standard identity. A request that changes something must also carry the `X-Gitsynth-CSRF` header, which another site's page cannot set without a CORS preflight the server never grants.
@@ -94,7 +94,6 @@ data/
 
 ### To verify
 
-- Whether Go's SSH library can require the user-presence ("touched") flag of FIDO keys
 - In what order the reference-transaction hook runs relative to the push quarantine and the migration of objects out of it
 
 ## Identity
@@ -127,7 +126,8 @@ Examples: Alice's local Claude Code session acts as `user:alice/claude`; Alice's
 - **An identity for a different actor, a session for a different run**: a different role or system prompt deserves its own identity; another run of the same one, a subagent's run included, is a session of that identity.
 - **Identities open sessions freely**: any credential of an identity can open a session of that same identity and get a short-lived credential bound to it. Sessions nest: a session can open child sessions (a subagent's run under its parent's run), so the record keeps the tree of runs. A session's credential never outlives the credential that opened it, and stops with it. The server assigns session IDs; an outside ID, such as a Claude Code session ID, is kept on the session as a label, which is what ties events to session logs.
 - **The credential decides the identity and the session**: one identity per credential, and one session when a session opened it. Asking for an identity on each action (self-declaration) leads to forgetting to switch, or to reuse.
-- **A person's standard identity checks that the person is present**: a local agent can reach the person's `~/.ssh` and Git credentials, so left alone it can act as the person. Requiring a FIDO2 security key that needs a touch (`ed25519-sk`) or a passkey puts them physically out of an agent's reach.
+- **A clone per identity, rather than the person's presence on every push**: a local agent can reach the person's `~/.ssh` and Git credentials, so the server cannot tell the person from the agent by a key. A FIDO key that needs a touch would, but it asks for attention on every push and trains the person to touch without looking. Instead, each identity works from a clone of its own, made with `git clone -c user.name=... -c user.email=... -c core.sshCommand=...`: the clone's config names the committer and the key, so neither depends on an agent remembering to set them. The web UI gives that command per identity. A derived identity's ssh reads no ssh config (`-F none`), so a `Host *` IdentityFile cannot offer the person's key behind the agent's.
+- **Loose use stays possible**: people who share one clone with their agents get what they chose. A person's push may carry their agents' commits (the person controls those identities) and is recorded as the person's. Identities and their credentials are still made by the person alone.
 - **Signatures extend to Git commits**: see "Commits and identities" below.
 
 ## Commits and identities

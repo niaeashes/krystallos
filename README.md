@@ -13,13 +13,13 @@ An early version. The server and its web UI run, and end-to-end tests drive the 
 What works:
 
 - Users, bots and services, and identities derived from them, never with more permissions than their parent
-- Git over smart HTTP, with every ref update recorded
+- Git over smart HTTP and SSH, with every ref update recorded; SSH keys belong to identities, and the web UI gives a clone command per identity
 - Ideas, issues, plans and change sets, with reviews, checks and merge rules
 - Passkey sign-in, standing tokens, and sessions that tell one run of an agent from another
 - An MCP endpoint per identity
 - A web UI, built into the server binary
 
-Not there yet: git over SSH, commit signatures, change sets from pushes to `refs/for/...`, webhooks, online backups and schema migrations, among others.
+Not there yet: commit signatures, change sets from pushes to `refs/for/...`, webhooks, online backups and schema migrations, among others.
 
 ## Trying it
 
