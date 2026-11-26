@@ -13,7 +13,7 @@ claude mcp add --transport http gitsynth https://gitsynth.example.com/mcp/user/a
 The first call opens gitsynth's consent page in the browser. Sign in with your passkey and approve; approving creates the identity if it does not exist yet. The client gets an access token for that endpoint alone, which lasts an hour, and a refresh token, which lasts 30 days and is replaced on every use. It keeps them itself: no token of yours is handed to the agent. The Identities page lists the connected clients, each with a Revoke button.
 
 - Only an identity derived from the signed-in person can be bound, never the person's own.
-- Clients register with a Client ID Metadata Document or with Dynamic Client Registration. A redirect URI is https; http on localhost, on any port; or a desktop app's own scheme, such as `claude://` for the Claude desktop app, which must match exactly. Schemes the browser handles itself, such as `javascript:`, `data:` and `file:`, are refused.
+- Clients register with a Client ID Metadata Document or with Dynamic Client Registration. A redirect URI is https; http on localhost, on any port; or a desktop app's own scheme, such as `claude://` for the Claude desktop app, which must match exactly. Schemes the browser handles itself, such as `javascript:`, `data:` and `file:`, are refused. The consent page says where the answer goes: a site, a program on this computer, or whichever app the operating system hands that scheme's links to.
 - Claude Code accepts plain http only from a server on localhost.
 
 ## Sessions

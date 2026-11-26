@@ -378,14 +378,16 @@ func TestOAuthMCP(t *testing.T) {
 		Client struct {
 			Name, Via string
 		} `json:"client"`
-		Identity string   `json:"identity"`
-		Create   []string `json:"create"`
-		Local    bool     `json:"local"`
-		Problem  string   `json:"problem"`
+		Identity     string   `json:"identity"`
+		Create       []string `json:"create"`
+		RedirectKind string   `json:"redirect_kind"`
+		RedirectHost string   `json:"redirect_host"`
+		Problem      string   `json:"problem"`
 	}
 	json.Unmarshal(b.json("GET", "/api/oauth/requests/"+reqID, nil, http.StatusOK), &view)
 	if view.Client.Name != "Test Agent" || view.Client.Via != "registration" || view.Identity != "user:alice/claude" ||
-		len(view.Create) != 1 || view.Create[0] != "user:alice/claude" || !view.Local || view.Problem != "" {
+		len(view.Create) != 1 || view.Create[0] != "user:alice/claude" || view.RedirectKind != "loopback" ||
+		view.RedirectHost != "127.0.0.1:54321" || view.Problem != "" {
 		t.Fatalf("unexpected consent view: %+v", view)
 	}
 	// The identity does not exist yet: approving creates it, only when asked.
@@ -580,6 +582,15 @@ func TestOAuthMCP(t *testing.T) {
 	reqID, back = desktop.authorize(desktop.authParams(desktopResource, challenge))
 	if back != nil {
 		t.Fatalf("authorize with the registered app scheme: %v", back)
+	}
+	var aview struct {
+		RedirectKind   string `json:"redirect_kind"`
+		RedirectScheme string `json:"redirect_scheme"`
+		RedirectHost   string `json:"redirect_host"`
+	}
+	json.Unmarshal(b.json("GET", "/api/oauth/requests/"+reqID, nil, http.StatusOK), &aview)
+	if aview.RedirectKind != "app" || aview.RedirectScheme != "claude" || aview.RedirectHost != "" {
+		t.Fatalf("the consent page should say the answer goes to whichever app opens claude: links: %+v", aview)
 	}
 	json.Unmarshal(b.json("POST", "/api/oauth/requests/"+reqID+"/deny", nil, http.StatusOK), &denied)
 	if u := desktop.follow(denied.Redirect); !strings.HasPrefix(u.String(), appRedirect+"?") || u.Query().Get("error") != "access_denied" ||

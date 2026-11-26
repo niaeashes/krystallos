@@ -318,8 +318,12 @@ export interface IssuedToken {
 export interface AuthRequestView {
   id: string
   client: { id: string; name: string; via: 'registration' | 'metadata_document'; host?: string }
-  redirect_host: string
-  local: boolean
+  // Where the browser takes the answer: a site (web), a program listening on
+  // this computer (loopback), or whichever app the operating system hands
+  // redirect_scheme links to (app).
+  redirect_kind: 'web' | 'loopback' | 'app'
+  redirect_host?: string
+  redirect_scheme?: string
   identity: string
   resource: string
   create?: string[]

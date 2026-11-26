@@ -68,8 +68,13 @@ export function ConsentPage() {
         ) : (
           <>It registered itself under this name; nothing vouches for it.</>
         )}{' '}
-        {r.local ? (
+        {r.redirect_kind === 'loopback' ? (
           <>After you answer, your browser goes back to a program on this computer ({r.redirect_host}).</>
+        ) : r.redirect_kind === 'app' ? (
+          <>
+            After you answer, your browser hands it to whichever app on this computer opens{' '}
+            <code>{r.redirect_scheme}:</code> links; your operating system decides which app that is.
+          </>
         ) : (
           <>
             After you answer, your browser goes to <strong>{r.redirect_host}</strong>.

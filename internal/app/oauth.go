@@ -430,12 +430,15 @@ type AuthRequestView struct {
 		// the client's name.
 		Host string `json:"host,omitempty"`
 	} `json:"client"`
-	// RedirectHost is where the browser goes after the answer; Local is
-	// true when that is a program on this computer.
-	RedirectHost string `json:"redirect_host"`
-	Local        bool   `json:"local"`
-	Identity     string `json:"identity"`
-	Resource     string `json:"resource"`
+	// RedirectKind is where the browser takes the answer: RedirectWeb, to
+	// the site at RedirectHost; RedirectLoopback, to a program on this
+	// computer listening at RedirectHost; or RedirectApp, to whichever app
+	// on this computer the operating system hands RedirectScheme links to.
+	RedirectKind   string `json:"redirect_kind"`
+	RedirectHost   string `json:"redirect_host,omitempty"`
+	RedirectScheme string `json:"redirect_scheme,omitempty"`
+	Identity       string `json:"identity"`
+	Resource       string `json:"resource"`
 	// Create lists the identities approving creates, outermost first.
 	Create []string `json:"create,omitempty"`
 	// Problem says why the request cannot be approved, if it cannot.
@@ -468,7 +471,12 @@ func (a *App) AuthorizationRequest(ctx context.Context, by Actor, id string) (Au
 		}
 	}
 	if u, err := url.Parse(r.RedirectURI); err == nil {
-		v.RedirectHost, v.Local = u.Host, isLoopbackHost(u.Hostname())
+		v.RedirectKind, _ = redirectKind(u)
+		if v.RedirectKind == RedirectApp {
+			v.RedirectScheme = u.Scheme
+		} else {
+			v.RedirectHost = u.Host
+		}
 	}
 	target := ident.MustParse(r.Identity)
 	if !target.Below(by.ID()) {
