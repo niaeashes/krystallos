@@ -83,7 +83,7 @@ data/
 **Deployment**
 
 - The assumption is "one machine with a disk". What it needs: a writable local disk (not network storage such as NFS), a resident process, two TCP ports (443 and 22), the `git` command, and a single instance.
-- On AWS and GCP, virtual machines (Lightsail, EC2, Compute Engine) run it as is, as do Sakura Cloud (さくらのクラウド) servers. Fargate, App Runner, Lambda and Cloud Run do not fit, because they either cannot accept SSH or cannot hold a disk.
+- On AWS and GCP, virtual machines (Lightsail, EC2, Compute Engine) run it as is. Fargate, App Runner, Lambda and Cloud Run do not fit, because they either cannot accept SSH or cannot hold a disk.
 - The core cannot run on Cloudflare: Workers have neither the git command nor a disk, and Containers only have an ephemeral disk. Cloudflare serves in front instead: Tunnel, serving the SPA, backups to R2.
 - API responses carry `Cache-Control: private, no-store`. If a proxy such as Cloudflare caches by file extension, reads escape the record.
 - As a rough size: 2 vCPUs, 2 GB of memory, 30–60 GB of disk. It is git during clones, more than the Go server, that uses memory.

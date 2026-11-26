@@ -11,7 +11,9 @@
 #   dist/vX.Y.Z/gitsynth-vX.Y.Z-OS-ARCH.tar.gz
 #     gitsynth-vX.Y.Z-OS-ARCH/gitsynth            the server, with the web UI inside
 #     gitsynth-vX.Y.Z-OS-ARCH/deploy/...          the systemd unit and the Caddyfile
+#     gitsynth-vX.Y.Z-OS-ARCH/docs/server.md      how to install and run it
 #     gitsynth-vX.Y.Z-OS-ARCH/README.md
+#     gitsynth-vX.Y.Z-OS-ARCH/LICENSE
 #
 # and dist/vX.Y.Z/SHA256SUMS, which sha256sum -c checks. Publishing them is a
 # separate step. PLATFORMS overrides the default "linux/amd64 linux/arm64".
@@ -84,7 +86,9 @@ for platform in $platforms; do
 		exit 1
 	fi
 	cp "$src/deploy/gitsynth.service" "$src/deploy/Caddyfile" "$stage/deploy/"
-	cp "$src/README.md" "$stage/"
+	mkdir -p "$stage/docs"
+	cp "$src/docs/server.md" "$stage/docs/"
+	cp "$src/README.md" "$src/LICENSE" "$stage/"
 	tar "${tar_flags[@]}" -C "$work/out" -czf "$work/out/$name.tar.gz" "$name"
 done
 

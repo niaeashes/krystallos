@@ -1,6 +1,6 @@
 # gitsynth behind a reverse proxy that terminates TLS (see deploy/Caddyfile).
-# Install as /etc/systemd/system/gitsynth.service; the README's "Running on a
-# server" has the steps.
+# Install as /etc/systemd/system/gitsynth.service; docs/server.md has the
+# steps.
 
 [Unit]
 Description=gitsynth Git forge
