@@ -24,7 +24,8 @@ import (
 //     Client Registration (RFC 7591);
 //   - /oauth/authorize takes the person to the consent page in the web UI,
 //     where they sign in and approve; the code comes back with PKCE (S256
-//     only) and a resource indicator (RFC 8707) naming the endpoint;
+//     only) and a resource indicator (RFC 8707) naming the endpoint, through
+//     /oauth/return, whose 302 hands it to the client's redirect URI;
 //   - /oauth/token trades the code, and later refresh tokens, for tokens
 //     whose audience is that endpoint.
 
@@ -280,7 +281,8 @@ func (s *Server) authRequest(r *http.Request, actor app.Actor) (any, error) {
 }
 
 // approveAuth binds the client to the identity and returns where the
-// browser goes next: the client's redirect URI, with the code.
+// browser goes next: gitsynth's /oauth/return/{id}, which sends it on to
+// the client's redirect URI with the code.
 func (s *Server) approveAuth(r *http.Request, actor app.Actor) (any, error) {
 	in, err := decode[struct {
 		Create bool `json:"create"`
@@ -292,7 +294,7 @@ func (s *Server) approveAuth(r *http.Request, actor app.Actor) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string]string{"redirect": withParams(req.RedirectURI, map[string]string{"code": code, "state": req.State, "iss": s.URL})}, nil
+	return s.returnTo(withParams(req.RedirectURI, map[string]string{"code": code, "state": req.State, "iss": s.URL})), nil
 }
 
 func (s *Server) denyAuth(r *http.Request, actor app.Actor) (any, error) {
@@ -300,9 +302,35 @@ func (s *Server) denyAuth(r *http.Request, actor app.Actor) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string]string{"redirect": withParams(req.RedirectURI, map[string]string{
+	return s.returnTo(withParams(req.RedirectURI, map[string]string{
 		"error": "access_denied", "error_description": "the person declined", "state": req.State, "iss": s.URL,
-	})}, nil
+	})), nil
+}
+
+// returnTo is the consent page's answer: a one-time gitsynth URL the
+// browser goes to next, which sends it on to location.
+func (s *Server) returnTo(location string) map[string]string {
+	return map[string]string{"redirect": s.URL + "/oauth/return/" + url.PathEscape(s.App.KeepReturn(location))}
+}
+
+// oauthReturn takes the browser from the consent page to the client: a
+// 302 to the redirect URI with the answer. The last hop to a client is
+// always a Location header, never script, for every kind of redirect URI:
+// a browser does not run a javascript: Location, nor go to a data: one at
+// the top level, so even a redirect URI that slipped past the checks
+// cannot run in gitsynth's origin.
+func (s *Server) oauthReturn(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	location, ok := s.App.TakeReturn(r.PathValue("id"))
+	if !ok {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("This answer was already sent to the client, or has expired. Start again from the client.\n"))
+		return
+	}
+	w.Header().Set("Location", location)
+	w.WriteHeader(http.StatusFound)
 }
 
 func (s *Server) listGrants(r *http.Request, actor app.Actor) (any, error) {

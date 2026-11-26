@@ -129,17 +129,36 @@ func (o *oauthAgent) connect(b *browser, resource string, create bool) tokens {
 		Redirect string `json:"redirect"`
 	}
 	json.Unmarshal(b.json("POST", "/api/oauth/requests/"+reqID+"/approve", map[string]bool{"create": create}, http.StatusOK), &approved)
-	return o.exchange(codeFrom(o.t, approved.Redirect), verifier, resource)
+	return o.exchange(codeFrom(o.t, o.follow(approved.Redirect)), verifier, resource)
 }
 
-func codeFrom(t *testing.T, redirect string) string {
-	t.Helper()
-	u, err := url.Parse(redirect)
-	if err != nil {
-		t.Fatal(err)
+// follow goes where the consent page sends the browser after the person
+// answers: gitsynth's one-time /oauth/return URL, whose 302 names the
+// client's redirect URI with the answer. It returns that.
+func (o *oauthAgent) follow(redirect string) *url.URL {
+	o.t.Helper()
+	if !strings.HasPrefix(redirect, o.h.url+"/oauth/return/ort_") {
+		o.t.Fatalf("the consent page should be sent to gitsynth's return URL, not to the client: %s", redirect)
 	}
+	resp, err := o.http.Get(o.h.local(redirect))
+	if err != nil {
+		o.t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusFound {
+		o.t.Fatalf("the return URL should answer 302, got %d", resp.StatusCode)
+	}
+	loc, err := url.Parse(resp.Header.Get("Location"))
+	if err != nil {
+		o.t.Fatal(err)
+	}
+	return loc
+}
+
+func codeFrom(t *testing.T, u *url.URL) string {
+	t.Helper()
 	if u.Query().Get("state") != "st-123" || u.Query().Get("code") == "" {
-		t.Fatalf("the redirect should carry the code and the state: %s", redirect)
+		t.Fatalf("the redirect should carry the code and the state: %s", u)
 	}
 	return u.Query().Get("code")
 }
@@ -375,10 +394,14 @@ func TestOAuthMCP(t *testing.T) {
 		Redirect string `json:"redirect"`
 	}
 	json.Unmarshal(b.json("POST", "/api/oauth/requests/"+reqID+"/approve", map[string]bool{"create": true}, http.StatusOK), &approved)
-	if !strings.HasPrefix(approved.Redirect, "http://127.0.0.1:54321/callback?") || !strings.Contains(approved.Redirect, "iss=") {
-		t.Fatalf("approving should send the browser back to the client: %s", approved.Redirect)
+	back = agent.follow(approved.Redirect)
+	if !strings.HasPrefix(back.String(), "http://127.0.0.1:54321/callback?") || back.Query().Get("iss") != h.url {
+		t.Fatalf("approving should send the browser back to the client: %s", back)
 	}
-	authCode := codeFrom(t, approved.Redirect)
+	if resp, err := agent.http.Get(h.local(approved.Redirect)); err != nil || resp.Body.Close() != nil || resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("the return URL should work once: %v %v", resp, err)
+	}
+	authCode := codeFrom(t, back)
 	if c, out := agent.token(url.Values{"grant_type": {"authorization_code"}, "code": {authCode}, "redirect_uri": {agent.redirect},
 		"client_id": {agent.clientID}, "code_verifier": {verifier}, "resource": {h.url + "/mcp/user/alice/other"}}); c != http.StatusBadRequest || out["error"] != "invalid_target" {
 		t.Fatalf("a code is good only for its resource: %d %v", c, out)
@@ -524,8 +547,48 @@ func TestOAuthMCP(t *testing.T) {
 		Redirect string `json:"redirect"`
 	}
 	json.Unmarshal(b.json("POST", "/api/oauth/requests/"+reqID+"/deny", nil, http.StatusOK), &denied)
-	if u, _ := url.Parse(denied.Redirect); u.Query().Get("error") != "access_denied" || u.Query().Get("state") != "st-123" {
-		t.Fatalf("declining should tell the client access_denied: %s", denied.Redirect)
+	if u := agent.follow(denied.Redirect); u.Query().Get("error") != "access_denied" || u.Query().Get("state") != "st-123" || u.Query().Get("iss") != h.url {
+		t.Fatalf("declining should tell the client access_denied: %s", u)
+	}
+
+	// A desktop app with no loopback listener, such as the Claude desktop
+	// app, registers a private-use scheme. Schemes the browser handles
+	// itself are refused.
+	for _, bad := range []string{"javascript:alert(document.cookie)", "data:text/html,<script>alert(1)</script>", "file:///etc/passwd"} {
+		if code, raw := anon.call("POST", "/oauth/register", map[string]any{"redirect_uris": []string{bad}}); code != http.StatusBadRequest {
+			t.Fatalf("registering %q should be refused: %d %s", bad, code, raw)
+		}
+	}
+	const appRedirect = "claude://claude.ai/mcp-auth-callback/sdk"
+	code, raw = anon.call("POST", "/oauth/register", map[string]any{
+		"client_name": "Desktop Agent", "redirect_uris": []string{appRedirect}, "token_endpoint_auth_method": "none",
+	})
+	json.Unmarshal(raw, &reg)
+	if code != http.StatusCreated {
+		t.Fatalf("registering %s: %d %s", appRedirect, code, raw)
+	}
+	desktop := newOAuthAgent(t, h, reg["client_id"].(string), appRedirect)
+	desktopResource := h.url + "/mcp/user/alice/desktop"
+	_, challenge = pkce()
+	for _, other := range []string{"claude://claude.ai/mcp-auth-callback/other", "claude-dev://claude.ai/mcp-auth-callback/sdk"} {
+		p := desktop.authParams(desktopResource, challenge)
+		p.Set("redirect_uri", other)
+		if resp, _ := desktop.http.Get(h.base + "/oauth/authorize?" + p.Encode()); resp.StatusCode != http.StatusBadRequest {
+			t.Fatalf("authorize with %s should be refused without redirecting, got %d", other, resp.StatusCode)
+		}
+	}
+	reqID, back = desktop.authorize(desktop.authParams(desktopResource, challenge))
+	if back != nil {
+		t.Fatalf("authorize with the registered app scheme: %v", back)
+	}
+	json.Unmarshal(b.json("POST", "/api/oauth/requests/"+reqID+"/deny", nil, http.StatusOK), &denied)
+	if u := desktop.follow(denied.Redirect); !strings.HasPrefix(u.String(), appRedirect+"?") || u.Query().Get("error") != "access_denied" ||
+		u.Query().Get("state") != "st-123" || u.Query().Get("iss") != h.url {
+		t.Fatalf("declining should send access_denied to the app: %s", u)
+	}
+	viaApp := desktop.connect(b, desktopResource, true)
+	if me := connectHolder(t, h.base+"/mcp/user/alice/desktop", &tokenHolder{tok: viaApp.access}).call("whoami", map[string]any{}, false); me["identity"] != "user:alice/desktop" {
+		t.Fatalf("the desktop app's client should act as user:alice/desktop: %v", me)
 	}
 
 	// A client known by its metadata document, which must name itself.
@@ -550,7 +613,7 @@ func TestOAuthMCP(t *testing.T) {
 		t.Fatalf("unexpected consent view for a metadata document: %+v", cview)
 	}
 	json.Unmarshal(b.json("POST", "/api/oauth/requests/"+reqID+"/approve", map[string]bool{"create": true}, http.StatusOK), &approved)
-	cimdCode := codeFrom(t, approved.Redirect)
+	cimdCode := codeFrom(t, cimd.follow(approved.Redirect))
 	wrong, _ := pkce()
 	if c, out := cimd.token(url.Values{"grant_type": {"authorization_code"}, "code": {cimdCode}, "redirect_uri": {cimd.redirect},
 		"client_id": {cimd.clientID}, "code_verifier": {wrong}}); c != http.StatusBadRequest || out["error"] != "invalid_grant" {

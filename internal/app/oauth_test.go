@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestPublicAddr(t *testing.T) {
@@ -134,6 +135,42 @@ func TestRedirectKind(t *testing.T) {
 		if got, err := redirectKind(u); got != want || err != nil {
 			t.Errorf("redirectKind(%q) = %q, %v; want %q", raw, got, err, want)
 		}
+	}
+}
+
+// TestReturnOnce: an answer on its way to the client can be taken once,
+// and not after it expires.
+func TestReturnOnce(t *testing.T) {
+	a := &App{}
+	loc := "claude://claude.ai/mcp-auth-callback/sdk?code=gsa_x&iss=https%3A%2F%2Fgit.example.com&state=s"
+	id := a.KeepReturn(loc)
+	if !strings.HasPrefix(id, "ort_") || len(id) < 20 {
+		t.Fatalf("unexpected return ID %q", id)
+	}
+	if other := a.KeepReturn(loc); other == id {
+		t.Fatal("each answer should get an ID of its own")
+	}
+	if got, ok := a.TakeReturn(id); !ok || got != loc {
+		t.Fatalf("TakeReturn = %q, %v; want %q", got, ok, loc)
+	}
+	if _, ok := a.TakeReturn(id); ok {
+		t.Fatal("a return ID should work once")
+	}
+	if _, ok := a.TakeReturn("ort_nosuchid"); ok {
+		t.Fatal("an unknown return ID should not work")
+	}
+	late := a.KeepReturn(loc)
+	a.oauth.mu.Lock()
+	a.oauth.returns[late].expires = time.Now().Add(-time.Second)
+	a.oauth.mu.Unlock()
+	if _, ok := a.TakeReturn(late); ok {
+		t.Fatal("an expired return ID should not work")
+	}
+	a.oauth.mu.Lock()
+	_, kept := a.oauth.returns[late]
+	a.oauth.mu.Unlock()
+	if kept {
+		t.Fatal("an expired return ID should be forgotten")
 	}
 }
 

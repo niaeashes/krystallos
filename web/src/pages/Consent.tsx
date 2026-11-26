@@ -24,7 +24,13 @@ export function ConsentPage() {
     try {
       const path = `/api/oauth/requests/${encodeURIComponent(id)}/${approve ? 'approve' : 'deny'}`
       const out = await post<{ redirect: string }>(path, approve ? { create: (req.data?.create?.length ?? 0) > 0 } : undefined)
-      window.location.assign(out.redirect)
+      // The answer is gitsynth's own /oauth/return/..., whose 302 takes the
+      // browser on to the client. Never navigate anywhere else from here.
+      const next = new URL(out.redirect, window.location.href)
+      if (next.protocol !== 'https:' && next.protocol !== 'http:') {
+        throw new Error('The server answered with an unexpected address; start again from the client.')
+      }
+      window.location.assign(next.href)
     } catch (err) {
       setError(err)
       setBusy(false)

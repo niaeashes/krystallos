@@ -71,6 +71,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /.well-known/oauth-authorization-server", s.authServerMetadata)
 	mux.HandleFunc("POST /oauth/register", s.registerClient)
 	mux.HandleFunc("GET /oauth/authorize", s.authorize)
+	mux.HandleFunc("GET /oauth/return/{id}", s.oauthReturn)
 	mux.HandleFunc("POST /oauth/token", s.token)
 
 	mux.HandleFunc("POST /api/auth/register/begin", s.registerBegin)

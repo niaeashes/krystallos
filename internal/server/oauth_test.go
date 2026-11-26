@@ -105,6 +105,32 @@ func TestAuthorizeAppScheme(t *testing.T) {
 	}
 }
 
+// TestOAuthReturn: the browser reaches the client through a 302 from
+// /oauth/return/{id}, once.
+func TestOAuthReturn(t *testing.T) {
+	s, _ := newTestServer(t, "http://localhost:3000")
+	h := s.Handler()
+	loc := withParams(claudeAppRedirect, map[string]string{"code": "gsa_x", "state": "st", "iss": s.URL})
+	out := s.returnTo(loc)
+	if !strings.HasPrefix(out["redirect"], "http://localhost:3000/oauth/return/ort_") {
+		t.Fatalf("the consent page should be sent to gitsynth's own return URL: %q", out["redirect"])
+	}
+	path := strings.TrimPrefix(out["redirect"], "http://localhost:3000")
+	w := oauthSend(h, "GET", path, "", "")
+	if w.Code != http.StatusFound || w.Header().Get("Location") != loc || w.Body.Len() != 0 {
+		t.Fatalf("the return URL should answer 302 to %q: %d %q %q", loc, w.Code, w.Header().Get("Location"), w.Body)
+	}
+	if cc := w.Header().Get("Cache-Control"); cc != "no-store" {
+		t.Errorf("Cache-Control = %q, want no-store", cc)
+	}
+	if w := oauthSend(h, "GET", path, "", ""); w.Code != http.StatusNotFound || w.Header().Get("Location") != "" {
+		t.Fatalf("a return URL should work once: %d %q", w.Code, w.Header().Get("Location"))
+	}
+	if w := oauthSend(h, "GET", "/oauth/return/ort_nosuchid", "", ""); w.Code != http.StatusNotFound {
+		t.Fatalf("an unknown return URL should be 404: %d", w.Code)
+	}
+}
+
 // TestWithParams: the answer is added to a redirect URI as a query, and
 // the rest of the URI stays as the client registered it.
 func TestWithParams(t *testing.T) {

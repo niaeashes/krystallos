@@ -32,13 +32,14 @@ import (
 // hang on it, so they outlive any one access token. Revoking the grant, or
 // disabling the identity, revokes all of it.
 //
-// What waits for the person (authorization requests), codes and fetched
-// Client ID Metadata Documents live in memory; grants, tokens and clients
-// are recorded.
+// What waits for the person (authorization requests), codes, answers on
+// their way back to the client and fetched Client ID Metadata Documents
+// live in memory; grants, tokens and clients are recorded.
 
 const (
 	oauthRequestTTL = 10 * time.Minute
 	oauthCodeTTL    = 2 * time.Minute
+	oauthReturnTTL  = time.Minute
 	// OAuthAccessTTL and OAuthRefreshTTL are how long tokens last. Each
 	// refresh moves the grant's expiry to the new refresh token's.
 	OAuthAccessTTL  = time.Hour
@@ -88,9 +89,16 @@ const (
 type oauthMem struct {
 	mu       sync.Mutex
 	requests map[string]*AuthRequest
-	codes    map[string]*authCode // by the code's hash
-	docs     map[string]cachedDoc // Client ID Metadata Documents by URL
+	codes    map[string]*authCode      // by the code's hash
+	returns  map[string]*pendingReturn // answers on their way to the client
+	docs     map[string]cachedDoc      // Client ID Metadata Documents by URL
 	fetch    *metadataFetcher
+}
+
+// pendingReturn is where /oauth/return/{id} sends the browser.
+type pendingReturn struct {
+	location string
+	expires  time.Time
 }
 
 // AuthRequest is an authorization request waiting for the person.
@@ -599,6 +607,55 @@ func (a *App) DenyAuthorization(ctx context.Context, by Actor, id string) (AuthR
 	}
 	a.dropAuthRequest(id)
 	return *r, nil
+}
+
+// KeepReturn keeps where the browser goes once the person has answered (the
+// client's redirect URI, with the code or the error) and returns a one-time
+// ID for it. /oauth/return/{id} sends the browser there with a 302, so the
+// web UI only ever navigates to gitsynth itself: a redirect URI that should
+// not have been accepted still never runs as script in gitsynth's origin.
+// The ID works once, within a minute.
+func (a *App) KeepReturn(location string) string {
+	m := &a.oauth
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.returns == nil {
+		m.returns = map[string]*pendingReturn{}
+	}
+	now := time.Now()
+	for id, r := range m.returns {
+		if now.After(r.expires) {
+			delete(m.returns, id)
+		}
+	}
+	if len(m.returns) >= maxOAuthRequests {
+		var oldest string
+		for id, r := range m.returns {
+			if oldest == "" || r.expires.Before(m.returns[oldest].expires) {
+				oldest = id
+			}
+		}
+		delete(m.returns, oldest)
+	}
+	id := "ort_" + randomString(16)
+	m.returns[id] = &pendingReturn{location: location, expires: now.Add(oauthReturnTTL)}
+	return id
+}
+
+// TakeReturn gives where a return ID sends the browser, and forgets it.
+func (a *App) TakeReturn(id string) (string, bool) {
+	m := &a.oauth
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	r := m.returns[id]
+	if r == nil {
+		return "", false
+	}
+	delete(m.returns, id)
+	if time.Now().After(r.expires) {
+		return "", false
+	}
+	return r.location, true
 }
 
 // ---- tokens ----
