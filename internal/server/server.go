@@ -38,9 +38,13 @@ type Server struct {
 	// Origins are other origins the web UI may be opened from, such as a
 	// dev server. A link made from a page at one of them points back there.
 	Origins []string
-	// MaxGit is how many git processes may serve clients at once; 0 means
-	// no limit. A clone, fetch or push beyond it waits for one to finish.
-	// The server's own git work (merges, reads for the API) is not counted.
+	// SSH is where SSH clients reach the server, host[:port], for SSH
+	// clone URLs; empty when the server serves no SSH.
+	SSH string
+	// MaxGit is how many git processes may serve clients at once, over
+	// HTTP and SSH together; 0 means no limit. A clone, fetch or push
+	// beyond it waits for one to finish. The server's own git work
+	// (merges, reads for the API) is not counted.
 	MaxGit int
 
 	gitOnce  sync.Once
@@ -106,6 +110,7 @@ func (s *Server) Handler() http.Handler {
 	api("GET /api/tokens", s.myCredentials)
 	api("POST /api/tokens", s.issueToken)
 	api("POST /api/tokens/{id}/revoke", s.revokeCredential)
+	api("POST /api/ssh-keys", s.addSSHKey)
 	api("GET /api/orgs", s.listOrgs)
 	api("POST /api/orgs", s.createOrg)
 	api("POST /api/orgs/{org}/grants", s.grantOrg)

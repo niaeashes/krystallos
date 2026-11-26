@@ -8,11 +8,13 @@ import {
   type Blob,
   type ChangeSetSummary,
   type Commit,
+  type IdentityInfo,
   type IssueSummary,
   type RepoInfo,
   type TreeEntry,
 } from '../api'
-import { Empty, ErrorBox, Identity, Loading, Oid, Section, State, Toggle } from '../ui'
+import { Empty, ErrorBox, Identity, Loading, Oid, Section, State, Toggle, parseIdentity } from '../ui'
+import { useMe } from '../App'
 
 type Tab = 'issues' | 'changesets' | 'code'
 
@@ -29,10 +31,7 @@ export function RepoPage({ tab }: { tab: Tab }) {
           <Link to={`/${org}`}>{org}</Link> / {repo}
         </div>
         <h1>{repo}</h1>
-        <div className="clone">
-          <span className="muted small">clone</span>
-          <code>{info.data.clone_url}</code>
-        </div>
+        <Clone info={info.data} />
       </div>
       <nav className="tabs">
         <NavLink to={base} end>
@@ -45,6 +44,81 @@ export function RepoPage({ tab }: { tab: Tab }) {
       {tab === 'changesets' && <ChangeSets org={org} repo={repo} />}
       {tab === 'code' && <Code org={org} repo={repo} info={info.data} />}
     </>
+  )
+}
+
+// sshKeyFile is where the clone command expects an identity's key: the
+// person's usual key, and a key of its own for each identity derived from
+// them, so an agent's clone never pushes with the person's.
+function sshKeyFile(identity: string) {
+  const { labels } = parseIdentity(identity)
+  return labels.length === 0 ? '~/.ssh/id_ed25519' : `~/.ssh/gitsynth_${labels.join('_')}`
+}
+
+// cloneCommand makes a clone that belongs to one identity: its config names
+// the committer and the key, so whoever works in it, a person or an agent,
+// has neither to remember. A derived identity's ssh reads no ssh config
+// (-F none): a "Host *" IdentityFile there, common on macOS, would offer the
+// person's key after the agent's, and a missing or revoked agent key would
+// then push as the person.
+function cloneCommand(identity: string, email: string, url: string, dir: string) {
+  const derived = parseIdentity(identity).labels.length > 0
+  const ssh = `ssh${derived ? ' -F none' : ''} -i ${sshKeyFile(identity)} -o IdentitiesOnly=yes`
+  return ['git clone', `  -c user.name=${identity}`, `  -c user.email=${email}`, `  -c core.sshCommand="${ssh}"`, `  ${url} ${dir}`].join(
+    ' \\\n',
+  )
+}
+
+function Clone({ info }: { info: RepoInfo }) {
+  const me = useMe()
+  const ids = useApi<IdentityInfo[]>('/api/identities')
+  const [as, setAs] = useState('')
+  const identity = as || me.identity
+  const host = me.commit_email.slice(me.commit_email.lastIndexOf('@') + 1)
+  const { labels } = parseIdentity(identity)
+  const dir = [info.repo.name, ...labels].join('-')
+  return (
+    <div className="clone">
+      <span className="muted small">clone</span>
+      <code>{info.clone_url}</code>
+      {info.ssh_clone_url && <code>{info.ssh_clone_url}</code>}
+      {info.ssh_clone_url && (
+        <Toggle label="Clone as an identity">
+          {(close) => (
+            <div className="form">
+              <div className="form-actions">
+                <select value={identity} onChange={(e) => setAs(e.target.value)}>
+                  {(ids.data ?? [{ id: me.identity, disabled: false }])
+                    .filter((i) => !i.disabled)
+                    .map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.id}
+                      </option>
+                    ))}
+                </select>
+                <button type="button" className="button button-quiet" onClick={close}>
+                  Close
+                </button>
+              </div>
+              <pre className="command">{cloneCommand(identity, `${identity}@${host}`, info.ssh_clone_url!, dir)}</pre>
+              <p className="muted small">
+                Everything committed and pushed in that clone belongs to <Identity handle={identity} />.{' '}
+                {labels.length > 0 ? (
+                  <>
+                    Make its key with <code>ssh-keygen -t ed25519 -f {sshKeyFile(identity)} -C {identity}</code> and add
+                    the <code>.pub</code> line under SSH keys on the Identities page. Run the agent in that clone.
+                  </>
+                ) : (
+                  <>Add your key's <code>.pub</code> line under SSH keys on the Identities page.</>
+                )}{' '}
+                Working in one clone together is fine too: your pushes may carry your agents' commits, and are recorded as
+                yours.
+              </p>
+            </div>
+          )}
+        </Toggle>
+      )}
+    </div>
   )
 }
 

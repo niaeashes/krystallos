@@ -40,7 +40,7 @@ The end-to-end tests run the real git and a real server, without your git config
 | `internal/ident` | Identity strings: parsing, derivation, ancestry |
 | `internal/store` | The hash-chained event log and the schema |
 | `internal/app` | Users, bots, services and identities, permissions, ideas, issues, plans and change sets, merging, reading code |
-| `internal/server` | The API, sign-in, the OAuth authorization server, Git smart HTTP, event delivery and the MCP endpoints |
+| `internal/server` | The API, sign-in, the OAuth authorization server, Git over smart HTTP and SSH, event delivery and the MCP endpoints |
 | `internal/gitx` | Running git and parsing pkt-lines |
 | `internal/accesslog` | Read records, in a SQLite file of their own |
 | `web` | The web UI, and the Go package that embeds its build (`-tags webui`) |

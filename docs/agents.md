@@ -22,6 +22,27 @@ Each connection is a session of the identity, and everything the client does is 
 
 `git_credential` returns a git credential for the session, good for an hour at most, with the URL and the address to commit with. Set `GIT_COMMITTER_EMAIL` to that address, or the push is refused. `whoami` says which identity and session a call acts as.
 
+## Git over SSH
+
+When the server serves SSH (see [docs/server.md](server.md#git-over-ssh)), a key is a credential of one identity, like a standing token: it lasts until revoked and belongs to no session. The person adds keys on the Identities page, for themself or for an identity derived from them; an agent adds none. Ordinary keys (ed25519, ecdsa, RSA of 2048 bits or more) and FIDO keys (`ed25519-sk`) all work.
+
+On one OS account an agent can reach the person's keys, so the server cannot tell them apart by the key. Give each identity a clone of its own instead. A repository's page gives the command under "Clone as an identity":
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/gitsynth_claude -C user:alice/claude
+git clone \
+  -c user.name=user:alice/claude \
+  -c user.email=user:alice/claude@gitsynth.example.com \
+  -c core.sshCommand="ssh -F none -i ~/.ssh/gitsynth_claude -o IdentitiesOnly=yes" \
+  git@gitsynth.example.com:acme/app.git app-claude
+```
+
+Add `~/.ssh/gitsynth_claude.pub` on the Identities page, and run the agent in `app-claude`. The clone's config names the committer and the key, so whatever is committed and pushed there belongs to `user:alice/claude` without the agent remembering anything. `-F none` keeps a `Host *` IdentityFile in `~/.ssh/config` from offering the person's key after the agent's. A `git worktree` shares its clone's config, so it belongs to the same identity.
+
+Working in one clone together also works: a person's push may carry their agents' commits, and is recorded as the person's.
+
+Pushes over SSH are recorded under the identity, not a session. For a record per run, use `git_credential` over HTTPS.
+
 ## Without a browser
 
 Bots and CI use a standing token at the same endpoint. Issue one on the Identities page, or on the server:

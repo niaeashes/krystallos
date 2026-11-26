@@ -446,6 +446,20 @@ type harness struct {
 	url       string   // the server's public URL: localhost, on the port it listens on
 	srv       *exec.Cmd
 	logs      *bytes.Buffer
+	// sshAddr is where serve takes git over SSH, when a test asks for it
+	// with useSSH before start; it stays the same across restarts.
+	sshAddr string
+}
+
+// useSSH has the server serve git over SSH on a free loopback port too.
+func (h *harness) useSSH() {
+	h.t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	h.sshAddr = ln.Addr().String()
+	ln.Close()
 }
 
 func newHarness(t *testing.T, dir string) *harness {
@@ -455,7 +469,12 @@ func newHarness(t *testing.T, dir string) *harness {
 		t.Fatal(err)
 	}
 	// Keep the user's git config, credential helpers and proxies out of it.
-	h.env = append(os.Environ(),
+	// An ssh command from the environment would override the one a clone's
+	// own config names, which is what the SSH tests are about.
+	h.env = append(slices.DeleteFunc(os.Environ(), func(kv string) bool {
+		name, _, _ := strings.Cut(kv, "=")
+		return name == "GIT_SSH_COMMAND" || name == "GIT_SSH" || name == "GIT_SSH_VARIANT"
+	}),
 		"HOME="+home,
 		"GIT_CONFIG_NOSYSTEM=1",
 		"GIT_CONFIG_GLOBAL="+filepath.Join(home, ".gitconfig"),
@@ -503,7 +522,11 @@ func (h *harness) start() {
 	if h.logs == nil {
 		h.logs = &bytes.Buffer{}
 	}
-	cmd := exec.Command(h.bin, "serve", "--data", h.data, "--listen", addr)
+	args := []string{"serve", "--data", h.data, "--listen", addr}
+	if h.sshAddr != "" {
+		args = append(args, "--ssh", h.sshAddr)
+	}
+	cmd := exec.Command(h.bin, args...)
 	cmd.Env = append(slices.Clip(h.env), h.serverEnv...)
 	cmd.Stdout, cmd.Stderr = h.logs, h.logs
 	if err := cmd.Start(); err != nil {

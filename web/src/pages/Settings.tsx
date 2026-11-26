@@ -9,6 +9,7 @@ import {
   type IdentityEmailAddress,
   type IdentityInfo,
   type IssuedToken,
+  type SSHKey,
   type ServiceInfo,
 } from '../api'
 import { Empty, ErrorBox, Identity, Loading, Section, State, Toggle, parseIdentity, when } from '../ui'
@@ -245,6 +246,8 @@ export function SettingsPage() {
         ))}
       </Section>
 
+      <SSHKeys identities={controlled.map((i) => i.id)} keys={(creds.data ?? []).filter((c) => c.kind === 'ssh_key')} />
+
       <Section title="Tokens and sessions">
         <form
           className="form-inline"
@@ -300,7 +303,7 @@ export function SettingsPage() {
             </tr>
           </thead>
           <tbody>
-            {creds.data?.map((c) => (
+            {creds.data?.filter((c) => c.kind !== 'ssh_key').map((c) => (
               <tr key={c.id} className={c.revoked ? 'revoked' : ''}>
                 <td>
                   <Identity handle={c.identity} />
@@ -330,6 +333,98 @@ export function SettingsPage() {
       <Invite orgs={orgs.data?.orgs ?? []} />
       {me.admin && <Services />}
     </>
+  )
+}
+
+// SSHKeys registers keys for git over SSH. A key is a credential of one
+// identity, revoked like a token. Each identity works best from a clone of
+// its own, whose config names the committer and the key: a repository's
+// page gives the command.
+function SSHKeys({ identities, keys: list }: { identities: string[]; keys: CredentialInfo[] }) {
+  const me = useMe()
+  const queryClient = useQueryClient()
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['/api/tokens'] })
+  const [form, setForm] = useState({ identity: '', name: '', public_key: '' })
+  const add = useMutation({
+    mutationFn: () => post<SSHKey>('/api/ssh-keys', { ...form, identity: form.identity || me.identity }),
+    onSuccess: () => {
+      setForm({ ...form, name: '', public_key: '' })
+      refresh()
+    },
+  })
+  const revoke = useMutation({ mutationFn: (id: string) => post(`/api/tokens/${id}/revoke`), onSuccess: refresh })
+  return (
+    <Section title="SSH keys">
+      <p className="muted small">
+        A key pushes and fetches over SSH as one identity. Give each agent a key of its own and work for it from a clone of
+        its own; a repository's page gives the command, which puts the committer and the key in the clone's config. FIDO keys
+        (<code>ed25519-sk</code>) work too, and ask for a touch on every use.
+      </p>
+      {list.length === 0 && <Empty>No SSH keys yet.</Empty>}
+      {list.length > 0 && (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Identity</th>
+              <th>Name</th>
+              <th>Fingerprint</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map((k) => (
+              <tr key={k.id} className={k.revoked ? 'revoked' : ''}>
+                <td>
+                  <Identity handle={k.identity} />
+                </td>
+                <td>{k.label || <span className="muted">unnamed</span>}</td>
+                <td>
+                  <code title={k.key_type}>{k.fingerprint}</code>
+                </td>
+                <td>
+                  {k.revoked ? (
+                    <State ok={false}>revoked</State>
+                  ) : (
+                    <button className="button button-quiet" onClick={() => revoke.mutate(k.id)} disabled={revoke.isPending}>
+                      Revoke
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <form
+        className="form"
+        onSubmit={(e) => {
+          e.preventDefault()
+          add.mutate()
+        }}
+      >
+        <textarea
+          className="mono"
+          value={form.public_key}
+          onChange={(e) => setForm({ ...form, public_key: e.target.value })}
+          placeholder="ssh-ed25519 AAAA... (one line from a .pub file)"
+          rows={2}
+        />
+        <div className="form-actions">
+          <select value={form.identity} onChange={(e) => setForm({ ...form, identity: e.target.value })}>
+            {identities.map((id) => (
+              <option key={id} value={id}>
+                {id}
+              </option>
+            ))}
+          </select>
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="name (the key's comment if empty)" />
+          <button className="button" disabled={!form.public_key.trim() || add.isPending}>
+            Add key
+          </button>
+        </div>
+      </form>
+      <ErrorBox error={add.error || revoke.error} />
+    </Section>
   )
 }
 
